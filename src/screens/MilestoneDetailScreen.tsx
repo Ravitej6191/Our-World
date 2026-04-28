@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import EmotionGlyph from '../components/EmotionGlyph';
+import { useHaptics } from '../hooks/useHaptics';
 import type { Milestone } from '../types';
 
 interface Props {
@@ -19,6 +20,7 @@ const chromeBtn: React.CSSProperties = {
 };
 
 export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }: Props) {
+  const { light, medium } = useHaptics();
   if (!milestone) {
     return (
       <div style={{
@@ -54,12 +56,12 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
         padding: '0 16px', display: 'flex', justifyContent: 'space-between',
         zIndex: 10,
       }}>
-        <button onClick={onBack} style={chromeBtn}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
           <Icon name="back" size={20} color={T.ink} />
-        </button>
-        <button style={chromeBtn}>
+        </motion.button>
+        <motion.button whileTap={{ scale: 0.9 }} style={chromeBtn}>
           <Icon name="share" size={18} color={T.ink} />
-        </button>
+        </motion.button>
       </div>
 
       {/* Hero card */}
@@ -164,8 +166,9 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
         )}
 
         {/* CTA */}
-        <button
-          onClick={onAddMemory}
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => { medium(); onAddMemory(); }}
           style={{
             width: '100%', height: 54, borderRadius: 18,
             background: milestone.done ? 'transparent' : 'linear-gradient(135deg, #8b6fc7, #d4736a)',
@@ -179,7 +182,7 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
           }}
         >
           {milestone.done ? 'Add another memory' : 'Capture this moment'}
-        </button>
+        </motion.button>
       </div>
     </motion.div>
   );

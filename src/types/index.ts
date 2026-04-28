@@ -4,6 +4,8 @@ export interface Memory {
   id: string;
   date: string;
   dateShort?: string;
+  time?: string;
+  group?: string;
   title: string;
   note: string;
   media: 'photo' | 'video' | 'voice' | 'text';
@@ -12,6 +14,7 @@ export interface Memory {
   emotion: EmotionKind;
   milestone: boolean;
   milestoneLabel?: string;
+  milestoneId?: string;
   duration?: string;
 }
 
@@ -43,7 +46,6 @@ export interface Child {
 
 export interface ToastState {
   text: string;
-  icon?: string;
 }
 
 export type TabId = 'home' | 'milestones' | 'add' | 'family' | 'profile';

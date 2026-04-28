@@ -1,14 +1,16 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { T, EMOTIONS, type EmotionKind } from '../tokens';
+import { T } from '../tokens';
 import Icon from '../components/Icon';
 import EmotionGlyph from '../components/EmotionGlyph';
 import { MILESTONES } from '../data';
+import { useHaptics } from '../hooks/useHaptics';
 import type { Milestone } from '../types';
 
 interface Props {
   onBack: () => void;
   onOpenMilestone: (id: string) => void;
+  onAddMemoryForMilestone: (id: string) => void;
 }
 
 const chromeBtn: React.CSSProperties = {
@@ -30,21 +32,15 @@ const DONE_GRADIENTS: Record<string, string> = {
 };
 
 const DONE_ICON_BG: Record<string, string> = {
-  peach:    '#f5c88a',
-  blush:    '#f0b8b0',
-  mint:     '#88d8b8',
-  lavender: '#c4b5e8',
-  sky:      '#88c8e8',
-  dusk:     '#b8a8e0',
-  gold:     '#d4a847',
-  dawn:     '#e8a878',
+  peach: '#f5c88a', blush: '#f0b8b0', mint: '#88d8b8',
+  lavender: '#c4b5e8', sky: '#88c8e8', dusk: '#b8a8e0',
+  gold: '#d4a847', dawn: '#e8a878',
 };
 
 function ProgressRing({ done, total }: { done: number; total: number }) {
   const r = 17;
   const circ = 2 * Math.PI * r;
   const fill = (done / total) * circ;
-
   return (
     <svg width="48" height="48" viewBox="0 0 48 48">
       <circle cx="24" cy="24" r={r} fill="none" stroke={T.lineSoft} strokeWidth="3.5" />
@@ -55,26 +51,27 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
         strokeLinecap="round"
         transform="rotate(-90 24 24)"
       />
-      <text
-        x="24" y="24"
-        textAnchor="middle" dominantBaseline="central"
-        fontSize="11" fontWeight="600" fill={T.ink}
-        fontFamily="Figtree, sans-serif"
-      >
+      <text x="24" y="24" textAnchor="middle" dominantBaseline="central"
+        fontSize="11" fontWeight="600" fill={T.ink} fontFamily="Figtree, sans-serif">
         {done}
       </text>
     </svg>
   );
 }
 
-function MilestoneTile({ milestone, onOpen }: { milestone: Milestone; onOpen: () => void }) {
+function MilestoneTile({ milestone, onOpen, onCapture }: {
+  milestone: Milestone;
+  onOpen: () => void;
+  onCapture: () => void;
+}) {
+  const { light, medium } = useHaptics();
   const tone = milestone.tone ?? 'lavender';
-  const emotion = milestone.emotion;
 
   if (milestone.done) {
     return (
-      <button
-        onClick={onOpen}
+      <motion.button
+        whileTap={{ scale: 0.96 }}
+        onClick={() => { light(); onOpen(); }}
         style={{
           background: DONE_GRADIENTS[tone] ?? DONE_GRADIENTS.lavender,
           borderRadius: 20, border: 'none', padding: '16px 14px 18px',
@@ -84,46 +81,40 @@ function MilestoneTile({ milestone, onOpen }: { milestone: Milestone; onOpen: ()
           display: 'flex', flexDirection: 'column', gap: 12,
         }}
       >
-        {/* Checkmark badge */}
         <div style={{
           position: 'absolute', top: 10, right: 10,
-          width: 22, height: 22, borderRadius: 11,
-          background: '#fff',
+          width: 22, height: 22, borderRadius: 11, background: '#fff',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 1px 4px rgba(58,50,69,0.12)',
         }}>
           <Icon name="check" size={12} color={T.lavenderDeep} strokeWidth={2.4} />
         </div>
-
-        {/* Icon circle */}
         <div style={{
           width: 44, height: 44, borderRadius: 22,
           background: DONE_ICON_BG[tone] ?? '#c4b5e8',
           display: 'flex', alignItems: 'center', justifyContent: 'center',
         }}>
-          {emotion ? (
-            <EmotionGlyph kind={emotion} size={22} />
+          {milestone.emotion ? (
+            <EmotionGlyph kind={milestone.emotion} size={22} />
           ) : (
             <Icon name="star" size={18} color="#fff" strokeWidth={2} />
           )}
         </div>
-
         <div>
           <div style={{
             fontSize: 13.5, fontWeight: 600, color: T.ink,
             letterSpacing: '-0.01em', lineHeight: 1.3, marginBottom: 4,
           }}>{milestone.label}</div>
-          <div style={{
-            fontSize: 11.5, color: T.inkSoft, fontWeight: 400,
-          }}>{milestone.date}</div>
+          <div style={{ fontSize: 11.5, color: T.inkSoft }}>{milestone.date}</div>
         </div>
-      </button>
+      </motion.button>
     );
   }
 
   return (
-    <button
-      onClick={onOpen}
+    <motion.button
+      whileTap={{ scale: 0.96 }}
+      onClick={() => { medium(); onCapture(); }}
       style={{
         background: 'transparent',
         border: `1.5px dashed ${T.line}`,
@@ -134,8 +125,7 @@ function MilestoneTile({ milestone, onOpen }: { milestone: Milestone; onOpen: ()
       }}
     >
       <div style={{
-        width: 44, height: 44, borderRadius: 22,
-        background: T.lineSoft,
+        width: 44, height: 44, borderRadius: 22, background: T.lineSoft,
         display: 'flex', alignItems: 'center', justifyContent: 'center',
       }}>
         <Icon name="plus" size={18} color={T.inkFaint} strokeWidth={1.8} />
@@ -145,13 +135,14 @@ function MilestoneTile({ milestone, onOpen }: { milestone: Milestone; onOpen: ()
           fontSize: 13.5, fontWeight: 600, color: T.inkSoft,
           letterSpacing: '-0.01em', lineHeight: 1.3, marginBottom: 4,
         }}>{milestone.label}</div>
-        <div style={{ fontSize: 11.5, color: T.inkFaint }}>Waiting…</div>
+        <div style={{ fontSize: 11.5, color: T.inkFaint }}>Tap to capture</div>
       </div>
-    </button>
+    </motion.button>
   );
 }
 
-export default function MilestonesScreen({ onBack, onOpenMilestone }: Props) {
+export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryForMilestone }: Props) {
+  const { light } = useHaptics();
   const done = MILESTONES.filter((m) => m.done).length;
   const total = MILESTONES.length;
 
@@ -167,10 +158,10 @@ export default function MilestonesScreen({ onBack, onOpenMilestone }: Props) {
     >
       {/* Header */}
       <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 20px`, flexShrink: 0 }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 20 }}>
-          <button onClick={onBack} style={chromeBtn}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 4 }}>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />
-          </button>
+          </motion.button>
           <div style={{ flex: 1 }}>
             <div style={{
               fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
@@ -196,7 +187,12 @@ export default function MilestonesScreen({ onBack, onOpenMilestone }: Props) {
       } as any}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {MILESTONES.map((m) => (
-            <MilestoneTile key={m.id} milestone={m} onOpen={() => onOpenMilestone(m.id)} />
+            <MilestoneTile
+              key={m.id}
+              milestone={m}
+              onOpen={() => onOpenMilestone(m.id)}
+              onCapture={() => onAddMemoryForMilestone(m.id)}
+            />
           ))}
         </div>
       </div>

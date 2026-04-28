@@ -71,6 +71,16 @@ function useNav(initial: Screen) {
   return { screen: stack[stack.length - 1], stack, dir, push, pop, replace, jumpTab };
 }
 
+function nowGroup() {
+  return new Date().toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+}
+function nowDate() {
+  return new Date().toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+}
+function nowTime() {
+  return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
+}
+
 export default function App() {
   const { child, memories, toast, setChild, addMemory, showToast, clearToast } = useStore();
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
@@ -79,6 +89,7 @@ export default function App() {
   const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+  const [pendingMilestoneId, setPendingMilestoneId] = useState<string | null>(null);
 
   // Android hardware back button
   useEffect(() => {
@@ -110,6 +121,38 @@ export default function App() {
   const handleOpenMember = (id: string) => {
     setOpenMemberId(id);
     push('memberDetail');
+  };
+
+  const handleOpenAddMemory = (milestoneId?: string) => {
+    setPendingMilestoneId(milestoneId ?? null);
+    push('addMemory');
+  };
+
+  const handleSaveMemory = (m: {
+    media: string; title: string; note: string;
+    emotion: any; isMilestone: boolean; milestoneId?: string;
+  }) => {
+    const id = `m${Date.now()}`;
+    const milestone = MILESTONES.find(ml => ml.id === m.milestoneId);
+    addMemory({
+      id,
+      date: nowDate(),
+      dateShort: new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }),
+      time: nowTime(),
+      group: nowGroup(),
+      title: m.title || 'A memory',
+      note: m.note,
+      media: m.media as any,
+      tone: 'lavender',
+      label: m.title,
+      emotion: m.emotion,
+      milestone: m.isMilestone && !!m.milestoneId,
+      milestoneLabel: milestone?.label,
+      milestoneId: m.milestoneId,
+    });
+    setPendingMilestoneId(null);
+    pop();
+    showToast({ text: 'Memory saved ✓' });
   };
 
   const selectedMemory = memories.find(m => m.id === openMemoryId);
@@ -161,6 +204,7 @@ export default function App() {
             <MilestonesScreen
               onBack={() => { setActiveTab('home'); jumpTab('home'); }}
               onOpenMilestone={handleOpenMilestone}
+              onAddMemoryForMilestone={(id) => handleOpenAddMemory(id)}
             />
           )}
 
@@ -168,7 +212,7 @@ export default function App() {
             <MilestoneDetailScreen
               milestone={selectedMilestone}
               onBack={pop}
-              onAddMemory={() => push('addMemory')}
+              onAddMemory={() => handleOpenAddMemory(openMilestoneId ?? undefined)}
             />
           )}
 
@@ -182,22 +226,9 @@ export default function App() {
 
           {screen === 'addMemory' && (
             <AddMemoryFlow
-              onClose={pop}
-              onSave={(m) => {
-                const id = `m${Date.now()}`;
-                addMemory({
-                  id, date: 'Today', dateShort: 'Today',
-                  title: m.title || 'A memory',
-                  note: m.note,
-                  media: m.media as any,
-                  tone: 'lavender',
-                  label: m.title,
-                  emotion: m.emotion,
-                  milestone: false,
-                });
-                pop();
-                showToast({ text: 'Memory saved' });
-              }}
+              defaultMilestoneId={pendingMilestoneId}
+              onClose={() => { setPendingMilestoneId(null); pop(); }}
+              onSave={handleSaveMemory}
             />
           )}
 
@@ -228,16 +259,14 @@ export default function App() {
           {screen === 'invite' && (
             <InviteFlow
               onClose={pop}
-              onInvited={() => {
-                pop();
-                showToast({ text: 'Invite sent!' });
-              }}
+              onInvited={() => { pop(); showToast({ text: 'Invite sent!' }); }}
             />
           )}
 
           {screen === 'profile' && (
             <ProfileScreen
               child={child}
+              memoriesCount={memories.length}
               onBack={() => { setActiveTab('home'); jumpTab('home'); }}
               onEdit={() => push('addChild')}
               onOpenSettings={() => push('settings')}

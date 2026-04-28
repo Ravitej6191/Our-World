@@ -1,10 +1,12 @@
 import React from 'react';
 import { motion } from 'framer-motion';
 import { T } from '../tokens';
+import { useHaptics } from '../hooks/useHaptics';
 
 interface Props { onContinue: () => void; }
 
 export default function SplashScreen({ onContinue }: Props) {
+  const { medium } = useHaptics();
   return (
     <div style={{
       height: '100%', position: 'relative', overflow: 'hidden',
@@ -69,14 +71,19 @@ export default function SplashScreen({ onContinue }: Props) {
         transition={{ delay: 0.8, duration: 0.5 }}
         style={{ position: 'absolute', bottom: 64, left: 0, right: 0, textAlign: 'center' }}
       >
-        <button onClick={onContinue} style={{
-          background: 'none', border: 'none', cursor: 'pointer',
-          fontSize: 13, color: T.inkMuted, letterSpacing: '0.18em',
-          textTransform: 'uppercase', fontFamily: T.fontSans,
-          WebkitTapHighlightColor: 'transparent',
-        }}>
+        <motion.button
+          whileTap={{ scale: 0.93 }}
+          onClick={() => { medium(); onContinue(); }}
+          style={{
+            background: 'none', border: 'none', cursor: 'pointer',
+            fontSize: 13, color: T.inkMuted, letterSpacing: '0.18em',
+            textTransform: 'uppercase', fontFamily: T.fontSans,
+            WebkitTapHighlightColor: 'transparent',
+            padding: '12px 24px',
+          }}
+        >
           Begin
-        </button>
+        </motion.button>
       </motion.div>
     </div>
   );

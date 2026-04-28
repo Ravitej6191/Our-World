@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { MILESTONES } from '../data';
+import { useHaptics } from '../hooks/useHaptics';
 import type { Child } from '../types';
 
 interface Props {
@@ -12,6 +13,7 @@ interface Props {
   onOpenSettings: () => void;
   onOpenMilestones: () => void;
   onOpenFamily: () => void;
+  memoriesCount: number;
 }
 
 const CHILD_PALETTES = [
@@ -54,25 +56,20 @@ const chromeBtn: React.CSSProperties = {
   cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
 };
 
-const PROFILE_ROWS = [
-  { icon: 'users', label: 'Family & sharing', sub: '3 people' },
-  { icon: 'star', label: 'Milestones', sub: '3 of 16 reached' },
-  { icon: 'heart', label: 'Yearly keepsake book', sub: 'Create your 2025 book' },
-  { icon: 'sun', label: 'Settings', sub: 'Privacy, backup, account' },
-];
-
-export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, onOpenMilestones, onOpenFamily }: Props) {
+export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, onOpenMilestones, onOpenFamily, memoriesCount }: Props) {
+  const { light } = useHaptics();
   const doneMilestones = MILESTONES.filter((m) => m.done);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
   const initial = (child.name || 'M')[0].toUpperCase();
   const ageText = computeAge(child.dob);
   const dobText = formatDob(child.dob);
 
-  const handleRow = (label: string) => {
-    if (label.includes('Family')) onOpenFamily();
-    else if (label.includes('Milestones')) onOpenMilestones();
-    else if (label.includes('Settings')) onOpenSettings();
-  };
+  const PROFILE_ROWS = [
+    { icon: 'users',  label: 'Family & sharing',     sub: '3 people',                        action: onOpenFamily },
+    { icon: 'star',   label: 'Little firsts',         sub: `${doneMilestones.length} reached`, action: onOpenMilestones },
+    { icon: 'heart',  label: 'Yearly keepsake book',  sub: 'Create your 2025 book',            action: () => {} },
+    { icon: 'sun',    label: 'Settings',              sub: 'Privacy, backup, account',         action: onOpenSettings },
+  ];
 
   return (
     <motion.div
@@ -89,14 +86,13 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
       <div style={{
         padding: `calc(${T.safeTop} + 12px) 20px 0`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        flexShrink: 0,
       }}>
-        <button onClick={onBack} style={chromeBtn}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
           <Icon name="back" size={20} color={T.ink} />
-        </button>
-        <button onClick={onEdit} style={chromeBtn}>
+        </motion.button>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onEdit(); }} style={chromeBtn}>
           <Icon name="edit" size={18} color={T.ink} />
-        </button>
+        </motion.button>
       </div>
 
       {/* Avatar + name */}
@@ -104,26 +100,29 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
         display: 'flex', flexDirection: 'column', alignItems: 'center',
         padding: '28px 24px 0',
       }}>
-        <div style={{
-          width: 120, height: 120, borderRadius: 60,
-          background: avatarGrad,
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: '0 8px 28px rgba(139,111,199,0.2)',
-          marginBottom: 18,
-        }}>
+        <motion.div
+          whileTap={{ scale: 0.96 }}
+          onClick={() => { light(); onEdit(); }}
+          style={{
+            width: 110, height: 110, borderRadius: 55,
+            background: avatarGrad,
+            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            boxShadow: '0 8px 28px rgba(139,111,199,0.22)',
+            marginBottom: 16, cursor: 'pointer',
+          }}
+        >
           <span style={{
             fontFamily: T.fontSerif, fontStyle: 'italic',
-            fontSize: 52, color: '#fff', fontWeight: 400,
+            fontSize: 48, color: '#fff', fontWeight: 400,
           }}>{initial}</span>
-        </div>
+        </motion.div>
 
         <div style={{
           fontFamily: T.fontSerif, fontStyle: 'italic',
-          fontSize: 32, color: T.ink, marginBottom: 6,
-          letterSpacing: '-0.02em',
+          fontSize: 30, color: T.ink, marginBottom: 5, letterSpacing: '-0.02em',
         }}>{child.name || 'Mira'}</div>
 
-        <div style={{ fontSize: 14, color: T.inkMuted }}>
+        <div style={{ fontSize: 13.5, color: T.inkMuted }}>
           {[ageText, dobText].filter(Boolean).join(' · ')}
         </div>
       </div>
@@ -136,84 +135,34 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
           display: 'flex',
         }}>
           {[
-            { value: '142', label: 'memories' },
+            { value: String(memoriesCount), label: 'memories' },
             { value: String(doneMilestones.length), label: 'firsts' },
-            { value: '36', label: 'weeks' },
           ].map((stat, i, arr) => (
             <div key={stat.label} style={{
-              flex: 1, textAlign: 'center', padding: '18px 8px',
+              flex: 1, textAlign: 'center', padding: '20px 8px',
               borderRight: i < arr.length - 1 ? `1px solid ${T.lineSoft}` : 'none',
             }}>
               <div style={{
-                fontSize: 24, fontWeight: 700, color: T.ink,
-                letterSpacing: '-0.02em', marginBottom: 3,
+                fontSize: 28, fontWeight: 700, color: T.ink,
+                letterSpacing: '-0.03em', marginBottom: 4,
               }}>{stat.value}</div>
-              <div style={{ fontSize: 11.5, color: T.inkMuted }}>{stat.label}</div>
+              <div style={{ fontSize: 12, color: T.inkMuted }}>{stat.label}</div>
             </div>
           ))}
         </div>
       </div>
 
-      {/* Little firsts strip */}
-      <div style={{ padding: '28px 0 0' }}>
-        <div style={{
-          paddingLeft: 20, marginBottom: 12,
-          fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
-          color: T.inkMuted, fontWeight: 500,
-        }}>Little firsts</div>
-        <div style={{
-          display: 'flex', gap: 10, overflowX: 'auto',
-          paddingLeft: 20, paddingRight: 20, paddingBottom: 4,
-          scrollbarWidth: 'none',
-        } as any}>
-          {doneMilestones.map((m) => (
-            <div key={m.id} style={{
-              width: 110, height: 110, borderRadius: 18,
-              background: 'linear-gradient(135deg, #fdf5dc, #fae8b0)',
-              flexShrink: 0, display: 'flex', flexDirection: 'column',
-              alignItems: 'center', justifyContent: 'center', gap: 8,
-              boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-            }}>
-              <div style={{
-                width: 36, height: 36, borderRadius: 18,
-                background: 'rgba(212,168,71,0.25)',
-                display: 'flex', alignItems: 'center', justifyContent: 'center',
-              }}>
-                <Icon name="star" size={16} color={T.gold} strokeWidth={2} />
-              </div>
-              <div style={{
-                fontSize: 11.5, fontWeight: 600, color: T.ink,
-                textAlign: 'center', lineHeight: 1.3, padding: '0 6px',
-              }}>{m.label}</div>
-            </div>
-          ))}
-          <div style={{
-            width: 110, height: 110, borderRadius: 18,
-            border: `1.5px dashed ${T.line}`,
-            flexShrink: 0, display: 'flex', flexDirection: 'column',
-            alignItems: 'center', justifyContent: 'center', gap: 6,
-          }}>
-            <Icon name="plus" size={18} color={T.inkFaint} />
-            <div style={{ fontSize: 11, color: T.inkFaint }}>More firsts</div>
-          </div>
-        </div>
-      </div>
-
-      {/* Also in her world */}
-      <div style={{ padding: '28px 20px 0' }}>
-        <div style={{
-          fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
-          color: T.inkMuted, fontWeight: 500, marginBottom: 12,
-        }}>Also in her world</div>
-
+      {/* Quick links */}
+      <div style={{ padding: '24px 20px 0' }}>
         <div style={{
           background: T.card, borderRadius: 18, overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
         }}>
           {PROFILE_ROWS.map((row, i, arr) => (
             <React.Fragment key={row.label}>
-              <button
-                onClick={() => handleRow(row.label)}
+              <motion.button
+                whileTap={{ scale: 0.99, background: T.bgCool }}
+                onClick={() => { light(); row.action(); }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                   padding: '15px 16px', background: 'none', border: 'none',
@@ -222,10 +171,8 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
                 }}
               >
                 <div style={{
-                  width: 36, height: 36, borderRadius: 12,
-                  background: T.bgCool,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  flexShrink: 0,
+                  width: 36, height: 36, borderRadius: 12, background: T.bgCool,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
                 }}>
                   <Icon name={row.icon} size={16} color={T.lavenderDeep} />
                 </div>
@@ -234,7 +181,7 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
                   <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 1 }}>{row.sub}</div>
                 </div>
                 <Icon name="chevron" size={14} color={T.inkFaint} />
-              </button>
+              </motion.button>
               {i < arr.length - 1 && (
                 <div style={{ height: 1, background: T.lineSoft, marginLeft: 66 }} />
               )}
@@ -243,16 +190,15 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
         </div>
       </div>
 
-      {/* Quiet quote */}
-      <div style={{ padding: '24px 20px 110px' }}>
+      {/* Quote */}
+      <div style={{ padding: '20px 20px 110px' }}>
         <div style={{
           background: T.bgCool, borderRadius: 18,
           padding: '20px 22px', textAlign: 'center',
         }}>
           <div style={{
             fontFamily: T.fontSerif, fontStyle: 'italic',
-            fontSize: 16, color: T.inkSoft, lineHeight: 1.65,
-            letterSpacing: '0.005em',
+            fontSize: 15.5, color: T.inkSoft, lineHeight: 1.7,
           }}>
             "The days are long, but the years are short."
           </div>
