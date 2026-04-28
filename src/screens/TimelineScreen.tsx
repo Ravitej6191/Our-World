@@ -1,13 +1,23 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { T, EMOTIONS, type EmotionKind } from '../tokens';
 import Icon from '../components/Icon';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import VoiceWaveform from '../components/VoiceWaveform';
 import { EmotionChip } from '../components/EmotionGlyph';
-import type { Memory } from '../types';
+import type { Memory, Child } from '../types';
+
+const CHILD_PALETTES = [
+  'linear-gradient(135deg, #f5c8c0, #e8a0d8)',
+  'linear-gradient(135deg, #f8d8b0, #f0b890)',
+  'linear-gradient(135deg, #b8e8d0, #90d8c0)',
+  'linear-gradient(135deg, #c8b8e8, #a898d8)',
+  'linear-gradient(135deg, #f5e0a0, #e8c870)',
+  'linear-gradient(135deg, #c0d8c0, #98c8a0)',
+];
 
 interface Props {
+  child: Child;
   memories: Memory[];
   onOpenMemory: (id: string) => void;
   onOpenSearch: () => void;
@@ -172,8 +182,31 @@ function MilestoneCard({ memory, onOpen }: { memory: Memory; onOpen: () => void 
   );
 }
 
-export default function TimelineScreen({ memories, onOpenMemory, onOpenSearch, onGoProfile }: Props) {
-  const [activeFilter, setActiveFilter] = useState(0);
+function filterMemories(memories: Memory[], filterLabel: string): Memory[] {
+  switch (filterLabel) {
+    case 'This week':
+      return memories.filter(m => /today|yesterday/i.test(m.date));
+    case 'Last week':
+      return memories.filter(m => /\b(mon|tue|wed|thu|fri|sat|sun)\b/i.test(m.date) && !/today|yesterday/i.test(m.date));
+    case 'April':
+      return memories.filter(m => /apr/i.test(m.date));
+    case 'March':
+      return memories.filter(m => /mar/i.test(m.date));
+    default:
+      return memories;
+  }
+}
+
+export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSearch, onGoProfile }: Props) {
+  const [activeFilter, setActiveFilter] = useState(FILTERS.length - 1); // default "All"
+
+  const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
+  const initial = (child.name || 'M')[0].toUpperCase();
+
+  const filtered = useMemo(
+    () => filterMemories(memories, FILTERS[activeFilter]),
+    [memories, activeFilter],
+  );
 
   return (
     <motion.div
@@ -186,7 +219,7 @@ export default function TimelineScreen({ memories, onOpenMemory, onOpenSearch, o
       }}
     >
       {/* Header */}
-      <div style={{ padding: '56px 24px 0' }}>
+      <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 0` }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
             <div style={{
@@ -198,11 +231,11 @@ export default function TimelineScreen({ memories, onOpenMemory, onOpenSearch, o
               letterSpacing: '-0.02em', lineHeight: 1.1,
               display: 'flex', alignItems: 'baseline', gap: 7, flexWrap: 'wrap',
             }}>
-              <span>Mira's</span>
+              <span>{child.name || 'Mira'}'s</span>
               <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>world</em>
             </div>
             <div style={{ fontSize: 13.5, color: T.inkMuted, marginTop: 5 }}>
-              8 months · 142 memories
+              {memories.length} {memories.length === 1 ? 'memory' : 'memories'}
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
@@ -210,20 +243,19 @@ export default function TimelineScreen({ memories, onOpenMemory, onOpenSearch, o
               <Icon name="search" size={18} color={T.inkSoft} />
             </button>
             <button onClick={onGoProfile} style={{
-              ...chromeBtn, background: 'linear-gradient(135deg, #f0ccc8, #c4b5e8)',
-              border: 'none',
+              ...chromeBtn, background: avatarGrad, border: 'none',
             }}>
               <span style={{
                 fontFamily: T.fontSerif, fontStyle: 'italic',
                 fontSize: 16, color: '#fff', fontWeight: 400,
-              }}>M</span>
+              }}>{initial}</span>
             </button>
           </div>
         </div>
 
         {/* Filter pills */}
         <div style={{
-          display: 'flex', gap: 8, marginTop: 20, marginBottom: 0,
+          display: 'flex', gap: 8, marginTop: 20,
           overflowX: 'auto', paddingBottom: 2,
           scrollbarWidth: 'none',
         } as any}>
@@ -254,37 +286,44 @@ export default function TimelineScreen({ memories, onOpenMemory, onOpenSearch, o
         flex: 1, overflowY: 'auto', padding: '16px 24px 110px',
         scrollbarWidth: 'none',
       } as any}>
-        {memories.map((memory) => (
-          <div key={memory.id} style={{ display: 'flex', gap: 0, marginBottom: 24 }}>
-            {/* Date rail */}
-            <div style={{
-              width: 52, flexShrink: 0, display: 'flex',
-              flexDirection: 'column', alignItems: 'center', paddingTop: 4,
-            }}>
+        {filtered.length === 0 ? (
+          <div style={{
+            paddingTop: 60, textAlign: 'center',
+            fontSize: 15, color: T.inkFaint,
+          }}>No memories here yet</div>
+        ) : (
+          filtered.map((memory) => (
+            <div key={memory.id} style={{ display: 'flex', gap: 0, marginBottom: 24 }}>
+              {/* Date rail */}
               <div style={{
-                width: 8, height: 8, borderRadius: 4,
-                background: memory.milestone ? T.gold : T.lavenderDeep,
-                flexShrink: 0,
-              }} />
-              <div style={{
-                width: 1, flex: 1, minHeight: 40,
-                background: `linear-gradient(${T.lineSoft}, transparent)`,
-                marginTop: 4,
-              }} />
+                width: 52, flexShrink: 0, display: 'flex',
+                flexDirection: 'column', alignItems: 'center', paddingTop: 4,
+              }}>
+                <div style={{
+                  width: 8, height: 8, borderRadius: 4,
+                  background: memory.milestone ? T.gold : T.lavenderDeep,
+                  flexShrink: 0,
+                }} />
+                <div style={{
+                  width: 1, flex: 1, minHeight: 40,
+                  background: `linear-gradient(${T.lineSoft}, transparent)`,
+                  marginTop: 4,
+                }} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{
+                  fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase',
+                  color: T.inkMuted, marginBottom: 10, fontWeight: 500,
+                }}>{memory.date}</div>
+                {memory.milestone ? (
+                  <MilestoneCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
+                ) : (
+                  <MemoryCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
+                )}
+              </div>
             </div>
-            <div style={{ flex: 1, minWidth: 0 }}>
-              <div style={{
-                fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase',
-                color: T.inkMuted, marginBottom: 10, fontWeight: 500,
-              }}>{memory.date}</div>
-              {memory.milestone ? (
-                <MilestoneCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
-              ) : (
-                <MemoryCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
-              )}
-            </div>
-          </div>
-        ))}
+          ))
+        )}
       </div>
     </motion.div>
   );

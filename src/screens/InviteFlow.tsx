@@ -69,7 +69,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.22 }}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 40px' }}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: `calc(${T.safeTop} + 12px) 24px 40px` }}
           >
             <div style={{ display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', marginBottom: 32 }}>
               <div style={{ fontSize: 26, fontWeight: 500, color: T.ink, letterSpacing: '-0.02em', lineHeight: 1.2, flex: 1, paddingRight: 16 }}>
@@ -112,7 +112,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
             transition={{ duration: 0.22 }}
             style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' } as any}
           >
-            <div style={{ padding: '56px 24px 40px' }}>
+            <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 40px` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
                 <button onClick={() => setStep('pick')} style={chromeBtn}>
                   <Icon name="back" size={20} color={T.ink} />
@@ -183,7 +183,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
             transition={{ duration: 0.22 }}
             style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' } as any}
           >
-            <div style={{ padding: '56px 24px 40px' }}>
+            <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 40px` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
                 <button onClick={() => setStep('compose')} style={chromeBtn}>
                   <Icon name="back" size={20} color={T.ink} />

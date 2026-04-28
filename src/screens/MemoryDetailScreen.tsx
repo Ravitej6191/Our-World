@@ -44,7 +44,7 @@ export default function MemoryDetailScreen({ memory, onBack, onOpenActions }: Pr
       } as any}
     >
       {/* Hero photo */}
-      <div style={{ position: 'relative', paddingTop: 100 }}>
+      <div style={{ position: 'relative', paddingTop: `calc(${T.safeTop} + 56px)` }}>
         <PhotoPlaceholder
           label={memory.label}
           tone={memory.tone}
@@ -54,7 +54,7 @@ export default function MemoryDetailScreen({ memory, onBack, onOpenActions }: Pr
         />
         {/* Absolute chrome */}
         <div style={{
-          position: 'absolute', top: 46, left: 0, right: 0,
+          position: 'absolute', top: `calc(${T.safeTop} + 2px)`, left: 0, right: 0,
           padding: '0 16px', display: 'flex', justifyContent: 'space-between',
         }}>
           <button onClick={onBack} style={chromeBtn}>

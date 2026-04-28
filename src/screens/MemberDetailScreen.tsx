@@ -50,7 +50,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
     >
       {/* Top chrome */}
       <div style={{
-        position: 'absolute', top: 46, left: 0, right: 0,
+        position: 'absolute', top: `calc(${T.safeTop} + 2px)`, left: 0, right: 0,
         padding: '0 16px', display: 'flex', justifyContent: 'space-between',
         zIndex: 10,
       }}>
@@ -65,7 +65,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
       } as any}>
         {/* Hero section */}
         <div style={{
-          paddingTop: 100, paddingBottom: 28,
+          paddingTop: `calc(${T.safeTop} + 56px)` as any, paddingBottom: 28,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           background: `linear-gradient(180deg, ${T.bgCool} 0%, ${T.bg} 100%)`,
         }}>

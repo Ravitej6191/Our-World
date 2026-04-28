@@ -71,7 +71,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
       }}
     >
       {/* Header */}
-      <div style={{ padding: '56px 24px 0', flexShrink: 0 }}>
+      <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 0`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
           <button onClick={onBack} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />

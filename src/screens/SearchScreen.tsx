@@ -71,7 +71,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
       }}
     >
       {/* Top bar */}
-      <div style={{ padding: '56px 20px 0', flexShrink: 0 }}>
+      <div style={{ padding: `calc(${T.safeTop} + 12px) 20px 0`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <button onClick={onBack} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />

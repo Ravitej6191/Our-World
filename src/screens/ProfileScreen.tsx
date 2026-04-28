@@ -3,14 +3,48 @@ import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { MILESTONES } from '../data';
+import type { Child } from '../types';
 
 interface Props {
+  child: Child;
   onBack: () => void;
-  childName: string;
   onEdit: () => void;
   onOpenSettings: () => void;
   onOpenMilestones: () => void;
   onOpenFamily: () => void;
+}
+
+const CHILD_PALETTES = [
+  'linear-gradient(135deg, #f5c8c0, #e8a0d8)',
+  'linear-gradient(135deg, #f8d8b0, #f0b890)',
+  'linear-gradient(135deg, #b8e8d0, #90d8c0)',
+  'linear-gradient(135deg, #c8b8e8, #a898d8)',
+  'linear-gradient(135deg, #f5e0a0, #e8c870)',
+  'linear-gradient(135deg, #c0d8c0, #98c8a0)',
+];
+
+function computeAge(dob?: { m: string; d: string; y: string }): string {
+  if (!dob || !dob.y || !dob.m || !dob.d) return '';
+  const birth = new Date(Number(dob.y), Number(dob.m) - 1, Number(dob.d));
+  const now = new Date();
+  const totalMonths =
+    (now.getFullYear() - birth.getFullYear()) * 12 +
+    (now.getMonth() - birth.getMonth());
+  if (totalMonths < 1) {
+    const days = Math.floor((now.getTime() - birth.getTime()) / 86400000);
+    return `${days} day${days !== 1 ? 's' : ''} old`;
+  }
+  if (totalMonths < 24) return `${totalMonths} month${totalMonths !== 1 ? 's' : ''} old`;
+  const years = Math.floor(totalMonths / 12);
+  const rem = totalMonths % 12;
+  return rem > 0 ? `${years} yr ${rem} mo old` : `${years} year${years !== 1 ? 's' : ''} old`;
+}
+
+function formatDob(dob?: { m: string; d: string; y: string }): string {
+  if (!dob || !dob.y || !dob.m || !dob.d) return '';
+  const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  const m = months[Number(dob.m) - 1] ?? '';
+  return `born ${m} ${dob.d}, ${dob.y}`;
 }
 
 const chromeBtn: React.CSSProperties = {
@@ -27,8 +61,12 @@ const PROFILE_ROWS = [
   { icon: 'sun', label: 'Settings', sub: 'Privacy, backup, account' },
 ];
 
-export default function ProfileScreen({ onBack, childName, onEdit, onOpenSettings, onOpenMilestones, onOpenFamily }: Props) {
+export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, onOpenMilestones, onOpenFamily }: Props) {
   const doneMilestones = MILESTONES.filter((m) => m.done);
+  const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
+  const initial = (child.name || 'M')[0].toUpperCase();
+  const ageText = computeAge(child.dob);
+  const dobText = formatDob(child.dob);
 
   const handleRow = (label: string) => {
     if (label.includes('Family')) onOpenFamily();
@@ -49,7 +87,7 @@ export default function ProfileScreen({ onBack, childName, onEdit, onOpenSetting
     >
       {/* Top chrome */}
       <div style={{
-        padding: '56px 20px 0',
+        padding: `calc(${T.safeTop} + 12px) 20px 0`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
         flexShrink: 0,
       }}>
@@ -68,7 +106,7 @@ export default function ProfileScreen({ onBack, childName, onEdit, onOpenSetting
       }}>
         <div style={{
           width: 120, height: 120, borderRadius: 60,
-          background: 'linear-gradient(135deg, #f0ccc8, #c4b5e8)',
+          background: avatarGrad,
           display: 'flex', alignItems: 'center', justifyContent: 'center',
           boxShadow: '0 8px 28px rgba(139,111,199,0.2)',
           marginBottom: 18,
@@ -76,17 +114,17 @@ export default function ProfileScreen({ onBack, childName, onEdit, onOpenSetting
           <span style={{
             fontFamily: T.fontSerif, fontStyle: 'italic',
             fontSize: 52, color: '#fff', fontWeight: 400,
-          }}>{(childName || 'M')[0]}</span>
+          }}>{initial}</span>
         </div>
 
         <div style={{
           fontFamily: T.fontSerif, fontStyle: 'italic',
           fontSize: 32, color: T.ink, marginBottom: 6,
           letterSpacing: '-0.02em',
-        }}>{childName || 'Mira'}</div>
+        }}>{child.name || 'Mira'}</div>
 
         <div style={{ fontSize: 14, color: T.inkMuted }}>
-          8 months · born Aug 14, 2025
+          {[ageText, dobText].filter(Boolean).join(' · ')}
         </div>
       </div>
 
@@ -99,7 +137,7 @@ export default function ProfileScreen({ onBack, childName, onEdit, onOpenSetting
         }}>
           {[
             { value: '142', label: 'memories' },
-            { value: '3', label: 'firsts' },
+            { value: String(doneMilestones.length), label: 'firsts' },
             { value: '36', label: 'weeks' },
           ].map((stat, i, arr) => (
             <div key={stat.label} style={{
@@ -128,7 +166,7 @@ export default function ProfileScreen({ onBack, childName, onEdit, onOpenSetting
           paddingLeft: 20, paddingRight: 20, paddingBottom: 4,
           scrollbarWidth: 'none',
         } as any}>
-          {MILESTONES.filter((m) => m.done).map((m) => (
+          {doneMilestones.map((m) => (
             <div key={m.id} style={{
               width: 110, height: 110, borderRadius: 18,
               background: 'linear-gradient(135deg, #fdf5dc, #fae8b0)',
@@ -149,7 +187,6 @@ export default function ProfileScreen({ onBack, childName, onEdit, onOpenSetting
               }}>{m.label}</div>
             </div>
           ))}
-          {/* Coming soon tile */}
           <div style={{
             width: 110, height: 110, borderRadius: 18,
             border: `1.5px dashed ${T.line}`,

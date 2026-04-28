@@ -50,7 +50,7 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
     >
       {/* Top chrome */}
       <div style={{
-        position: 'absolute', top: 46, left: 0, right: 0,
+        position: 'absolute', top: `calc(${T.safeTop} + 2px)`, left: 0, right: 0,
         padding: '0 16px', display: 'flex', justifyContent: 'space-between',
         zIndex: 10,
       }}>
@@ -63,7 +63,7 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
       </div>
 
       {/* Hero card */}
-      <div style={{ padding: '100px 20px 0' }}>
+      <div style={{ padding: `calc(${T.safeTop} + 56px) 20px 0` }}>
         <div style={{
           background: heroGrad,
           borderRadius: 28, padding: '36px 28px 32px',

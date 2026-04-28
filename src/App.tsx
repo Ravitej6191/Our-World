@@ -1,5 +1,6 @@
-import React, { useState, useCallback } from 'react';
+import React, { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
+import { App as CapApp } from '@capacitor/app';
 import { useStore } from './store';
 import type { TabId } from './types';
 import { MILESTONES, SAMPLE_MEMBERS } from './data';
@@ -28,7 +29,6 @@ type Screen =
   | 'family' | 'memberDetail' | 'invite'
   | 'profile' | 'settings';
 
-const TAB_SCREENS: TabId[] = ['home', 'milestones', 'family', 'profile'];
 const MAIN_TABS: Screen[] = ['home', 'milestones', 'family', 'profile'];
 
 const slide = {
@@ -68,17 +68,26 @@ function useNav(initial: Screen) {
     setStack([s]);
   }, [stack]);
 
-  return { screen: stack[stack.length - 1], dir, push, pop, replace, jumpTab };
+  return { screen: stack[stack.length - 1], stack, dir, push, pop, replace, jumpTab };
 }
 
 export default function App() {
   const { child, memories, toast, setChild, addMemory, showToast, clearToast } = useStore();
-  const { screen, dir, push, pop, replace, jumpTab } = useNav('splash');
+  const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+
+  // Android hardware back button
+  useEffect(() => {
+    let handle: { remove: () => void } | undefined;
+    CapApp.addListener('backButton', () => {
+      if (stack.length > 1) pop();
+    }).then(h => { handle = h; });
+    return () => { handle?.remove(); };
+  }, [stack, pop]);
 
   const showMain = MAIN_TABS.includes(screen as any);
 
@@ -140,6 +149,7 @@ export default function App() {
 
           {screen === 'home' && (
             <TimelineScreen
+              child={child}
               memories={memories}
               onOpenMemory={handleOpenMemory}
               onOpenSearch={() => push('search')}
@@ -227,7 +237,7 @@ export default function App() {
 
           {screen === 'profile' && (
             <ProfileScreen
-              childName={child.name}
+              child={child}
               onBack={() => { setActiveTab('home'); jumpTab('home'); }}
               onEdit={() => push('addChild')}
               onOpenSettings={() => push('settings')}
@@ -242,12 +252,10 @@ export default function App() {
         </motion.div>
       </AnimatePresence>
 
-      {/* Tab bar — shown on main tabs */}
       {showMain && (
         <TabBar active={activeTab} onNav={handleTab} />
       )}
 
-      {/* Toast */}
       {toast && <Toast text={toast.text} onDone={clearToast} />}
     </div>
   );

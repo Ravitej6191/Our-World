@@ -62,7 +62,7 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
       display: 'flex', flexDirection: 'column',
     }}>
       {/* Chrome */}
-      <div style={{ padding: '56px 16px 8px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+      <div style={{ padding: `calc(${T.safeTop} + 12px) 16px 8px`, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
         <button onClick={prev} style={chromeBtnStyle}>
           <Icon name="back" size={20} color={T.ink} />
         </button>

@@ -60,7 +60,7 @@ export default function SettingsScreen({ onBack }: Props) {
       display: 'flex', flexDirection: 'column', fontFamily: T.fontSans,
     }}>
       {/* Header */}
-      <div style={{ padding: '56px 20px 0', display: 'flex', alignItems: 'center', gap: 12 }}>
+      <div style={{ padding: `calc(${T.safeTop} + 12px) 20px 0`, display: 'flex', alignItems: 'center', gap: 12 }}>
         <button onClick={onBack} style={{
           width: 40, height: 40, borderRadius: 20,
           background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,

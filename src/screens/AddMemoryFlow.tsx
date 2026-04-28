@@ -129,7 +129,7 @@ export default function AddMemoryFlow({ onClose, onSave }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.22 }}
-            style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: '56px 24px 40px' }}
+            style={{ flex: 1, display: 'flex', flexDirection: 'column', padding: `calc(${T.safeTop} + 12px) 24px 40px` }}
           >
             {/* Header */}
             <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 32 }}>
@@ -199,7 +199,7 @@ export default function AddMemoryFlow({ onClose, onSave }: Props) {
           >
             {/* Top chrome */}
             <div style={{
-              padding: '56px 20px 16px',
+              padding: `calc(${T.safeTop} + 12px) 20px 16px`,
               display: 'flex', alignItems: 'center', gap: 12,
               flexShrink: 0,
             }}>
@@ -292,14 +292,20 @@ export default function AddMemoryFlow({ onClose, onSave }: Props) {
 
               {/* CTA */}
               <button
-                onClick={() => setStep('emotion')}
+                disabled={!title.trim()}
+                onClick={() => title.trim() && setStep('emotion')}
                 style={{
                   width: '100%', height: 54, borderRadius: 18,
-                  background: 'linear-gradient(135deg, #8b6fc7, #d4736a)',
-                  border: 'none', cursor: 'pointer', color: '#fff',
+                  background: title.trim()
+                    ? 'linear-gradient(135deg, #8b6fc7, #d4736a)'
+                    : T.lineSoft,
+                  border: 'none',
+                  cursor: title.trim() ? 'pointer' : 'default',
+                  color: title.trim() ? '#fff' : T.inkFaint,
                   fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em',
                   fontFamily: T.fontSans,
-                  boxShadow: '0 6px 20px rgba(139,111,199,0.35)',
+                  boxShadow: title.trim() ? '0 6px 20px rgba(139,111,199,0.35)' : 'none',
+                  transition: 'all 0.2s ease',
                   WebkitTapHighlightColor: 'transparent' as any,
                 }}
               >
@@ -318,7 +324,7 @@ export default function AddMemoryFlow({ onClose, onSave }: Props) {
             transition={{ duration: 0.22 }}
             style={{
               flex: 1, display: 'flex', flexDirection: 'column',
-              padding: '56px 24px 40px',
+              padding: `calc(${T.safeTop} + 12px) 24px 40px`,
             }}
           >
             <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
