@@ -1,0 +1,254 @@
+import React, { useState, useCallback } from 'react';
+import { AnimatePresence, motion } from 'framer-motion';
+import { useStore } from './store';
+import type { TabId } from './types';
+import { MILESTONES, SAMPLE_MEMBERS } from './data';
+
+import SplashScreen from './screens/SplashScreen';
+import OnboardingScreen from './screens/OnboardingScreen';
+import AddChildFlow from './screens/AddChildFlow';
+import TimelineScreen from './screens/TimelineScreen';
+import MilestonesScreen from './screens/MilestonesScreen';
+import MilestoneDetailScreen from './screens/MilestoneDetailScreen';
+import SearchScreen from './screens/SearchScreen';
+import AddMemoryFlow from './screens/AddMemoryFlow';
+import MemoryDetailScreen from './screens/MemoryDetailScreen';
+import FamilyScreen from './screens/FamilyScreen';
+import MemberDetailScreen from './screens/MemberDetailScreen';
+import InviteFlow from './screens/InviteFlow';
+import ProfileScreen from './screens/ProfileScreen';
+import SettingsScreen from './screens/SettingsScreen';
+import TabBar from './components/TabBar';
+import Toast from './components/Toast';
+
+type Screen =
+  | 'splash' | 'onboarding' | 'addChild'
+  | 'home' | 'milestones' | 'milestoneDetail'
+  | 'search' | 'addMemory' | 'memoryDetail'
+  | 'family' | 'memberDetail' | 'invite'
+  | 'profile' | 'settings';
+
+const TAB_SCREENS: TabId[] = ['home', 'milestones', 'family', 'profile'];
+const MAIN_TABS: Screen[] = ['home', 'milestones', 'family', 'profile'];
+
+const slide = {
+  enter: (d: number) => ({ x: d >= 0 ? '100%' : '-100%', opacity: 0 }),
+  center: { x: 0, opacity: 1 },
+  exit:  (d: number) => ({ x: d >= 0 ? '-100%' : '100%', opacity: 0 }),
+};
+const fade = {
+  enter:  { opacity: 0, y: 16 },
+  center: { opacity: 1, y: 0 },
+  exit:   { opacity: 0, y: -8 },
+};
+
+function useNav(initial: Screen) {
+  const [stack, setStack] = useState<Screen[]>([initial]);
+  const [dir, setDir] = useState(1);
+
+  const push = useCallback((s: Screen) => {
+    setDir(1);
+    setStack(prev => [...prev, s]);
+  }, []);
+
+  const pop = useCallback(() => {
+    setDir(-1);
+    setStack(prev => prev.length > 1 ? prev.slice(0, -1) : prev);
+  }, []);
+
+  const replace = useCallback((s: Screen) => {
+    setDir(1);
+    setStack([s]);
+  }, []);
+
+  const jumpTab = useCallback((s: Screen) => {
+    const idx = MAIN_TABS.indexOf(s);
+    const curIdx = MAIN_TABS.indexOf(stack[stack.length - 1]);
+    setDir(idx >= curIdx ? 1 : -1);
+    setStack([s]);
+  }, [stack]);
+
+  return { screen: stack[stack.length - 1], dir, push, pop, replace, jumpTab };
+}
+
+export default function App() {
+  const { child, memories, toast, setChild, addMemory, showToast, clearToast } = useStore();
+  const { screen, dir, push, pop, replace, jumpTab } = useNav('splash');
+
+  const [activeTab, setActiveTab] = useState<TabId>('home');
+  const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
+  const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
+  const [openMemberId, setOpenMemberId] = useState<string | null>(null);
+
+  const showMain = MAIN_TABS.includes(screen as any);
+
+  const handleTab = (tab: TabId) => {
+    if (tab === 'add') { push('addMemory'); return; }
+    setActiveTab(tab);
+    jumpTab(tab as Screen);
+  };
+
+  const handleOpenMemory = (id: string) => {
+    setOpenMemoryId(id);
+    push('memoryDetail');
+  };
+
+  const handleOpenMilestone = (id: string) => {
+    setOpenMilestoneId(id);
+    push('milestoneDetail');
+  };
+
+  const handleOpenMember = (id: string) => {
+    setOpenMemberId(id);
+    push('memberDetail');
+  };
+
+  const selectedMemory = memories.find(m => m.id === openMemoryId);
+  const selectedMilestone = MILESTONES.find(m => m.id === openMilestoneId);
+  const selectedMember = SAMPLE_MEMBERS.find(m => m.id === openMemberId);
+
+  const isModal = screen === 'addMemory' || screen === 'addChild' || screen === 'invite';
+  const transition = { type: 'tween', ease: [0.32, 0, 0.16, 1], duration: 0.32 } as const;
+
+  return (
+    <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#faf8f7' }}>
+      <AnimatePresence mode="wait" custom={dir}>
+        <motion.div
+          key={screen}
+          custom={dir}
+          variants={isModal ? fade : slide}
+          initial="enter"
+          animate="center"
+          exit="exit"
+          transition={transition}
+          style={{ position: 'absolute', inset: 0 }}
+        >
+          {screen === 'splash' && (
+            <SplashScreen onContinue={() => replace('onboarding')} />
+          )}
+
+          {screen === 'onboarding' && (
+            <OnboardingScreen onDone={() => replace('addChild')} />
+          )}
+
+          {screen === 'addChild' && (
+            <AddChildFlow
+              onDone={(c) => { setChild(c); replace('home'); }}
+              onBack={() => replace('onboarding')}
+            />
+          )}
+
+          {screen === 'home' && (
+            <TimelineScreen
+              memories={memories}
+              onOpenMemory={handleOpenMemory}
+              onOpenSearch={() => push('search')}
+              onGoProfile={() => { setActiveTab('profile'); jumpTab('profile'); }}
+            />
+          )}
+
+          {screen === 'milestones' && (
+            <MilestonesScreen
+              onBack={() => { setActiveTab('home'); jumpTab('home'); }}
+              onOpenMilestone={handleOpenMilestone}
+            />
+          )}
+
+          {screen === 'milestoneDetail' && (
+            <MilestoneDetailScreen
+              milestone={selectedMilestone}
+              onBack={pop}
+              onAddMemory={() => push('addMemory')}
+            />
+          )}
+
+          {screen === 'search' && (
+            <SearchScreen
+              memories={memories}
+              onBack={pop}
+              onOpenMemory={handleOpenMemory}
+            />
+          )}
+
+          {screen === 'addMemory' && (
+            <AddMemoryFlow
+              onClose={pop}
+              onSave={(m) => {
+                const id = `m${Date.now()}`;
+                addMemory({
+                  id, date: 'Today', dateShort: 'Today',
+                  title: m.title || 'A memory',
+                  note: m.note,
+                  media: m.media as any,
+                  tone: 'lavender',
+                  label: m.title,
+                  emotion: m.emotion,
+                  milestone: false,
+                });
+                pop();
+                showToast({ text: 'Memory saved' });
+              }}
+            />
+          )}
+
+          {screen === 'memoryDetail' && (
+            <MemoryDetailScreen
+              memory={selectedMemory}
+              onBack={pop}
+              onOpenActions={() => {}}
+            />
+          )}
+
+          {screen === 'family' && (
+            <FamilyScreen
+              onBack={() => { setActiveTab('home'); jumpTab('home'); }}
+              onOpenMember={handleOpenMember}
+              onInvite={() => push('invite')}
+            />
+          )}
+
+          {screen === 'memberDetail' && (
+            <MemberDetailScreen
+              member={selectedMember}
+              onBack={pop}
+              onRemove={pop}
+            />
+          )}
+
+          {screen === 'invite' && (
+            <InviteFlow
+              onClose={pop}
+              onInvited={() => {
+                pop();
+                showToast({ text: 'Invite sent!' });
+              }}
+            />
+          )}
+
+          {screen === 'profile' && (
+            <ProfileScreen
+              childName={child.name}
+              onBack={() => { setActiveTab('home'); jumpTab('home'); }}
+              onEdit={() => push('addChild')}
+              onOpenSettings={() => push('settings')}
+              onOpenMilestones={() => { setActiveTab('milestones'); jumpTab('milestones'); }}
+              onOpenFamily={() => { setActiveTab('family'); jumpTab('family'); }}
+            />
+          )}
+
+          {screen === 'settings' && (
+            <SettingsScreen onBack={pop} />
+          )}
+        </motion.div>
+      </AnimatePresence>
+
+      {/* Tab bar — shown on main tabs */}
+      {showMain && (
+        <TabBar active={activeTab} onNav={handleTab} />
+      )}
+
+      {/* Toast */}
+      {toast && <Toast text={toast.text} onDone={clearToast} />}
+    </div>
+  );
+}
