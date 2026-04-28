@@ -1,27 +1,25 @@
 import { useCallback } from 'react';
-import { Haptics, ImpactStyle, NotificationType } from '@capacitor/haptics';
 
-async function tryHaptics(fn: () => Promise<void>) {
-  try { await fn(); } catch { /* no-op on web */ }
+// Dynamic import so the web/browser dev build never fails
+async function impact(style: 'Light' | 'Medium' | 'Heavy') {
+  try {
+    const { Haptics, ImpactStyle } = await import('@capacitor/haptics');
+    await Haptics.impact({ style: ImpactStyle[style] });
+  } catch { /* no-op on web */ }
+}
+
+async function notify(type: 'Success' | 'Warning' | 'Error') {
+  try {
+    const { Haptics, NotificationType } = await import('@capacitor/haptics');
+    await Haptics.notification({ type: NotificationType[type] });
+  } catch { /* no-op on web */ }
 }
 
 export function useHaptics() {
-  const light = useCallback(
-    () => tryHaptics(() => Haptics.impact({ style: ImpactStyle.Light })),
-    [],
-  );
-  const medium = useCallback(
-    () => tryHaptics(() => Haptics.impact({ style: ImpactStyle.Medium })),
-    [],
-  );
-  const success = useCallback(
-    () => tryHaptics(() => Haptics.notification({ type: NotificationType.Success })),
-    [],
-  );
-  const warning = useCallback(
-    () => tryHaptics(() => Haptics.notification({ type: NotificationType.Warning })),
-    [],
-  );
+  const light   = useCallback(() => impact('Light'),    []);
+  const medium  = useCallback(() => impact('Medium'),   []);
+  const success = useCallback(() => notify('Success'),  []);
+  const warning = useCallback(() => notify('Warning'),  []);
 
   return { light, medium, success, warning };
 }
