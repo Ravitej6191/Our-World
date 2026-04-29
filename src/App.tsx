@@ -3,7 +3,8 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { App as CapApp } from '@capacitor/app';
 import { useStore } from './store';
 import type { TabId } from './types';
-import { SAMPLE_MEMBERS } from './data';
+import { useFirestoreSync } from './hooks/useFirestore';
+import { EMOTION_TONE } from './shared/constants';
 
 import SplashScreen from './screens/SplashScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -85,7 +86,11 @@ function todayShort() {
 }
 
 export default function App() {
-  const { child, memories, milestones, toast, setChild, addMemory, markMilestoneDone, showToast, clearToast } = useStore();
+  const {
+    child, memories, milestones, toast,
+    setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
+    removeMember, showToast, clearToast,
+  } = useStore();
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -94,7 +99,8 @@ export default function App() {
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [pendingMilestoneId, setPendingMilestoneId] = useState<string | null>(null);
 
-  // Android hardware back button
+  useFirestoreSync();
+
   useEffect(() => {
     let handle: { remove: () => void } | undefined;
     CapApp.addListener('backButton', () => {
@@ -137,6 +143,7 @@ export default function App() {
   }) => {
     const id = `m${Date.now()}`;
     const milestone = milestones.find(ml => ml.id === m.milestoneId);
+    const tone = EMOTION_TONE[m.emotion as keyof typeof EMOTION_TONE] ?? 'lavender';
     addMemory({
       id,
       date: nowDate(),
@@ -146,7 +153,7 @@ export default function App() {
       title: m.title || 'A memory',
       note: m.note,
       media: m.media as any,
-      tone: 'lavender',
+      tone,
       label: m.title,
       emotion: m.emotion,
       milestone: m.isMilestone && !!m.milestoneId,
@@ -154,19 +161,31 @@ export default function App() {
       milestoneId: m.milestoneId,
     });
 
-    // Mark milestone as done in store when linked
     if (m.isMilestone && m.milestoneId) {
-      markMilestoneDone(m.milestoneId, todayShort(), 'lavender', m.emotion);
+      markMilestoneDone(m.milestoneId, todayShort(), tone, m.emotion);
     }
 
     setPendingMilestoneId(null);
     pop();
-    showToast({ text: 'Memory saved ✓' });
+    showToast({ text: 'Memory saved', variant: 'success' });
+  };
+
+  const handleDeleteMemory = (id: string) => {
+    deleteMemory(id);
+    pop();
+    showToast({ text: 'Memory deleted', variant: 'success' });
+  };
+
+  const handleRemoveMember = (id: string) => {
+    removeMember(id);
+    pop();
+    showToast({ text: 'Member removed', variant: 'success' });
   };
 
   const selectedMemory = memories.find(m => m.id === openMemoryId);
   const selectedMilestone = milestones.find(m => m.id === openMilestoneId);
-  const selectedMember = SAMPLE_MEMBERS.find(m => m.id === openMemberId);
+  const members = useStore((s) => s.members);
+  const selectedMember = members.find(m => m.id === openMemberId);
 
   const isModal = screen === 'addMemory' || screen === 'addChild' || screen === 'invite';
   const transition = { type: 'tween', ease: [0.32, 0, 0.16, 1], duration: 0.32 } as const;
@@ -220,6 +239,7 @@ export default function App() {
           {screen === 'milestoneDetail' && (
             <MilestoneDetailScreen
               milestone={selectedMilestone}
+              memories={memories}
               onBack={pop}
               onAddMemory={() => handleOpenAddMemory(openMilestoneId ?? undefined)}
             />
@@ -245,7 +265,11 @@ export default function App() {
             <MemoryDetailScreen
               memory={selectedMemory}
               onBack={pop}
-              onOpenActions={() => {}}
+              onDelete={handleDeleteMemory}
+              onSave={(updated) => {
+                updateMemory(updated);
+                showToast({ text: 'Memory updated', variant: 'success' });
+              }}
             />
           )}
 
@@ -261,14 +285,14 @@ export default function App() {
             <MemberDetailScreen
               member={selectedMember}
               onBack={pop}
-              onRemove={pop}
+              onRemove={handleRemoveMember}
             />
           )}
 
           {screen === 'invite' && (
             <InviteFlow
               onClose={pop}
-              onInvited={() => { pop(); showToast({ text: 'Invite sent!' }); }}
+              onInvited={() => { pop(); showToast({ text: 'Invite sent!', variant: 'success' }); }}
             />
           )}
 
@@ -295,7 +319,7 @@ export default function App() {
         <TabBar active={activeTab} onNav={handleTab} />
       )}
 
-      {toast && <Toast text={toast.text} onDone={clearToast} />}
+      {toast && <Toast toast={toast} onDone={clearToast} />}
     </div>
   );
 }

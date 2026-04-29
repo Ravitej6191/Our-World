@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { useHaptics } from '../hooks/useHaptics';
@@ -19,6 +19,12 @@ const PALETTES = [
   { key: 'sage',    label: 'Sage',   c1: '#c0d8c0', c2: '#98c8a0' },
 ];
 
+const PRONOUNS_OPTIONS = [
+  { label: 'she / her',   value: 'she / her'   },
+  { label: 'he / him',    value: 'he / him'    },
+  { label: 'they / them', value: 'they / them' },
+];
+
 const MONTH_NAMES = [
   'January','February','March','April','May','June',
   'July','August','September','October','November','December',
@@ -27,6 +33,23 @@ const MONTH_NAMES = [
 function formatDobConfirm(dob: { d: string; m: string; y: string }): string {
   const mn = MONTH_NAMES[Number(dob.m) - 1] ?? '—';
   return `Born ${dob.d || '—'} ${mn} ${dob.y || '—'}`;
+}
+
+function validateDob(dob: { d: string; m: string; y: string }): string | null {
+  const d = Number(dob.d);
+  const m = Number(dob.m);
+  const y = Number(dob.y);
+  const now = new Date();
+  if (!d || !m || !y) return null;
+  if (m < 1 || m > 12) return 'Month must be between 1 and 12';
+  if (d < 1 || d > 31) return 'Day must be between 1 and 31';
+  if (y < 1900) return 'Year must be after 1900';
+  const birth = new Date(y, m - 1, d);
+  if (birth > now) return 'Date of birth can\'t be in the future';
+  // Check days in month
+  const daysInMonth = new Date(y, m, 0).getDate();
+  if (d > daysInMonth) return `${MONTH_NAMES[m - 1]} only has ${daysInMonth} days`;
+  return null;
 }
 
 function DobField({ label, value, onChange, placeholder }: {
@@ -58,18 +81,26 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
   const [step, setStep] = useState(0);
   const [name, setName] = useState('');
   const [dob, setDob] = useState({ d: '', m: '', y: '' });
+  const [dobError, setDobError] = useState<string | null>(null);
+  const [pronouns, setPronouns] = useState('she / her');
   const [colorIdx, setColorIdx] = useState(0);
   const total = 4;
 
+  const dobFilled = dob.d && dob.m && dob.y;
   const canProceed =
     (step === 0 && name.trim().length > 0) ||
-    (step === 1 && dob.d && dob.m && dob.y) ||
+    (step === 1 && !!dobFilled && !dobError) ||
     step === 2 || step === 3;
 
   const next = () => {
+    if (step === 1) {
+      const err = validateDob(dob);
+      if (err) { setDobError(err); return; }
+      setDobError(null);
+    }
     medium();
     if (step < total - 1) setStep(step + 1);
-    else onDone({ name: name || 'Mira', pronouns: 'she / her', colorIdx, dob });
+    else onDone({ name: name || 'Mira', pronouns, colorIdx, dob });
   };
   const prev = () => { light(); step > 0 ? setStep(step - 1) : onBack(); };
 
@@ -96,7 +127,7 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
         <div style={{ width: 40 }} />
       </div>
 
-      {/* Progress bar — only filled + current steps show colour, future are faint tracks */}
+      {/* Progress bar */}
       <div style={{ padding: '6px 24px 4px', display: 'flex', gap: 6 }}>
         {Array.from({ length: total }).map((_, i) => (
           <div key={i} style={{
@@ -138,6 +169,34 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
                 The name you use for them. You can change this any time.
               </div>
             </div>
+
+            {/* Pronouns picker */}
+            <div style={{ marginTop: 32 }}>
+              <div style={{
+                fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
+                color: T.inkMuted, marginBottom: 12,
+              }}>Pronouns</div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                {PRONOUNS_OPTIONS.map((p) => (
+                  <motion.button
+                    key={p.value}
+                    whileTap={{ scale: 0.94 }}
+                    onClick={() => { light(); setPronouns(p.value); }}
+                    style={{
+                      padding: '8px 18px', borderRadius: 999,
+                      background: pronouns === p.value ? T.lavenderDeep : T.card,
+                      border: `1.5px solid ${pronouns === p.value ? T.lavenderDeep : T.line}`,
+                      color: pronouns === p.value ? '#fff' : T.inkSoft,
+                      fontSize: 14, fontWeight: pronouns === p.value ? 600 : 400,
+                      cursor: 'pointer', fontFamily: T.fontSans,
+                      WebkitTapHighlightColor: 'transparent' as any,
+                    }}
+                  >
+                    {p.label}
+                  </motion.button>
+                ))}
+              </div>
+            </div>
           </>
         )}
 
@@ -154,13 +213,28 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
               <span>When was</span>
               <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>{name || 'they'} born?</em>
             </div>
-            {/* Day / Month / Year order */}
             <div style={{ marginTop: 40, display: 'grid', gridTemplateColumns: '1fr 1fr 1.4fr', gap: 10 }}>
-              <DobField label="Day"   value={dob.d} onChange={(v) => setDob({ ...dob, d: v.replace(/\D/g, '').slice(0, 2) })} placeholder="DD" />
-              <DobField label="Month" value={dob.m} onChange={(v) => setDob({ ...dob, m: v.replace(/\D/g, '').slice(0, 2) })} placeholder="MM" />
-              <DobField label="Year"  value={dob.y} onChange={(v) => setDob({ ...dob, y: v.replace(/\D/g, '').slice(0, 4) })} placeholder="YYYY" />
+              <DobField label="Day"   value={dob.d} onChange={(v) => { setDob({ ...dob, d: v.replace(/\D/g, '').slice(0, 2) }); setDobError(null); }} placeholder="DD" />
+              <DobField label="Month" value={dob.m} onChange={(v) => { setDob({ ...dob, m: v.replace(/\D/g, '').slice(0, 2) }); setDobError(null); }} placeholder="MM" />
+              <DobField label="Year"  value={dob.y} onChange={(v) => { setDob({ ...dob, y: v.replace(/\D/g, '').slice(0, 4) }); setDobError(null); }} placeholder="YYYY" />
             </div>
-            <div style={{ fontSize: 13, color: T.inkMuted, marginTop: 20, lineHeight: 1.5 }}>
+            <AnimatePresence>
+              {dobError && (
+                <motion.div
+                  initial={{ opacity: 0, y: -4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  style={{
+                    marginTop: 12, padding: '10px 14px', borderRadius: 10,
+                    background: '#fce8e6', border: `1px solid #f5c0bc`,
+                    fontSize: 13, color: T.blushDeep, lineHeight: 1.4,
+                  }}
+                >
+                  {dobError}
+                </motion.div>
+              )}
+            </AnimatePresence>
+            <div style={{ fontSize: 13, color: T.inkMuted, marginTop: 16, lineHeight: 1.5 }}>
               We use this to mark weeks, months and milestones on their timeline.
             </div>
           </>

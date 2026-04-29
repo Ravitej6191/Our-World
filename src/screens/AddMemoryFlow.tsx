@@ -6,7 +6,7 @@ import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import VoiceWaveform from '../components/VoiceWaveform';
 import EmotionGlyph from '../components/EmotionGlyph';
 import Toggle from '../components/Toggle';
-import { MILESTONES } from '../data';
+import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
 
 interface Props {
@@ -107,6 +107,7 @@ function VoiceRecorder() {
 }
 
 export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: Props) {
+  const milestones = useStore((s) => s.milestones);
   const [step, setStep] = useState<Step>('pick');
   const [media, setMedia] = useState<MediaType>('photo');
   const [title, setTitle] = useState('');
@@ -114,9 +115,19 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
   const [isMilestone, setIsMilestone] = useState(!!defaultMilestoneId);
   const [milestoneId, setMilestoneId] = useState<string | null>(defaultMilestoneId ?? null);
   const [emotion, setEmotion] = useState<EmotionKind | null>(null);
+  const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const { light, medium, success } = useHaptics();
 
+  const hasContent = title.trim().length > 0 || note.trim().length > 0 || emotion !== null;
   const canSave = title.trim().length > 0 && emotion !== null;
+
+  const handleClose = () => {
+    if (step === 'compose' && hasContent) {
+      setShowDiscardConfirm(true);
+    } else {
+      onClose();
+    }
+  };
 
   useEffect(() => {
     if (step === 'saving') {
@@ -198,7 +209,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
           </motion.div>
         )}
 
-        {/* ── Step 2: Compose (all-in-one) ── */}
+        {/* ── Step 2: Compose ── */}
         {step === 'compose' && (
           <motion.div
             key="compose"
@@ -216,7 +227,11 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
               padding: `calc(${T.safeTop} + 12px) 20px 16px`,
               display: 'flex', alignItems: 'center', gap: 12, flexShrink: 0,
             }}>
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); setStep('pick'); }} style={chromeBtn}>
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => { light(); setStep('pick'); }}
+                style={chromeBtn}
+              >
                 <Icon name="back" size={20} color={T.ink} />
               </motion.button>
               <span style={{
@@ -225,7 +240,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                 {MEDIA_OPTIONS.find((m) => m.type === media)?.label}
               </span>
               <div style={{ flex: 1 }} />
-              <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onClose(); }} style={chromeBtn}>
+              <motion.button whileTap={{ scale: 0.9 }} onClick={handleClose} style={chromeBtn}>
                 <Icon name="close" size={18} color={T.inkSoft} />
               </motion.button>
             </div>
@@ -252,14 +267,29 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                 </motion.div>
               )}
               {media === 'voice' && <VoiceRecorder />}
+              {media === 'text' && (
+                <div style={{
+                  background: 'linear-gradient(135deg, #fdf5dc, #fae8b0)',
+                  borderRadius: 20, padding: '24px 20px', minHeight: 160,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <div style={{
+                    fontFamily: T.fontSerif, fontStyle: 'italic',
+                    fontSize: 18, color: T.inkMuted, textAlign: 'center', lineHeight: 1.55,
+                  }}>
+                    {note || 'Write your memory in the note below…'}
+                  </div>
+                </div>
+              )}
 
               {/* Title */}
               <div style={{ borderBottom: `1.5px solid ${T.line}`, paddingBottom: 10 }}>
                 <input
                   value={title}
-                  onChange={(e) => setTitle(e.target.value)}
+                  onChange={(e) => setTitle(e.target.value.slice(0, 80))}
                   placeholder="Give this moment a title…"
                   autoFocus
+                  maxLength={80}
                   style={{
                     width: '100%', border: 'none', outline: 'none',
                     background: 'transparent',
@@ -268,14 +298,20 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                     letterSpacing: '-0.01em',
                   } as any}
                 />
+                {title.length >= 60 && (
+                  <div style={{ fontSize: 11, color: title.length >= 80 ? T.blushDeep : T.inkFaint, textAlign: 'right', marginTop: 4 }}>
+                    {80 - title.length} left
+                  </div>
+                )}
               </div>
 
               {/* Note */}
               <textarea
                 value={note}
-                onChange={(e) => setNote(e.target.value)}
+                onChange={(e) => setNote(e.target.value.slice(0, 1000))}
                 placeholder="Add a note… what do you want to remember?"
                 rows={3}
+                maxLength={1000}
                 style={{
                   width: '100%', border: `1px solid ${T.line}`, outline: 'none',
                   background: T.card, borderRadius: 14, padding: '14px 16px',
@@ -284,7 +320,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                 } as any}
               />
 
-              {/* Feeling picker (inline) */}
+              {/* Feeling picker */}
               <div>
                 <div style={{
                   fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
@@ -348,7 +384,6 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                   />
                 </div>
 
-                {/* Milestone picker */}
                 <AnimatePresence>
                   {isMilestone && (
                     <motion.div
@@ -363,10 +398,8 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                           fontSize: 11, letterSpacing: '0.16em', textTransform: 'uppercase',
                           color: T.inkMuted, marginBottom: 10,
                         }}>Which first?</div>
-                        <div style={{
-                          display: 'flex', flexWrap: 'wrap', gap: 8,
-                        }}>
-                          {MILESTONES.map((m) => {
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+                          {milestones.map((m) => {
                             const active = milestoneId === m.id;
                             return (
                               <motion.button
@@ -425,7 +458,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
           </motion.div>
         )}
 
-        {/* ── Step 3: Saving animation ── */}
+        {/* ── Step 3: Saving ── */}
         {step === 'saving' && (
           <motion.div
             key="saving"
@@ -470,6 +503,75 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
           </motion.div>
         )}
 
+      </AnimatePresence>
+
+      {/* Discard confirmation overlay */}
+      <AnimatePresence>
+        {showDiscardConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 200,
+              background: 'rgba(58,50,69,0.55)',
+              display: 'flex', alignItems: 'flex-end',
+            }}
+            onClick={() => setShowDiscardConfirm(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%', background: T.card,
+                borderRadius: '24px 24px 0 0',
+                padding: '24px 24px 40px',
+                fontFamily: T.fontSans,
+              }}
+            >
+              <div style={{
+                width: 40, height: 4, borderRadius: 2,
+                background: T.lineSoft, margin: '0 auto 24px',
+              }} />
+              <div style={{ fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 8 }}>
+                Discard this memory?
+              </div>
+              <div style={{ fontSize: 14, color: T.inkMuted, marginBottom: 28, lineHeight: 1.5 }}>
+                You've started adding something. If you leave now, it won't be saved.
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { medium(); setShowDiscardConfirm(false); onClose(); }}
+                style={{
+                  width: '100%', height: 52, borderRadius: 16,
+                  background: '#d4736a', border: 'none', cursor: 'pointer',
+                  color: '#fff', fontSize: 15, fontWeight: 600,
+                  fontFamily: T.fontSans, marginBottom: 12,
+                  WebkitTapHighlightColor: 'transparent' as any,
+                }}
+              >
+                Discard
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { light(); setShowDiscardConfirm(false); }}
+                style={{
+                  width: '100%', height: 52, borderRadius: 16,
+                  background: 'transparent', border: `1.5px solid ${T.line}`,
+                  cursor: 'pointer', color: T.ink, fontSize: 15,
+                  fontWeight: 500, fontFamily: T.fontSans,
+                  WebkitTapHighlightColor: 'transparent' as any,
+                }}
+              >
+                Keep editing
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
       </AnimatePresence>
     </div>
   );

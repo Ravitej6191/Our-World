@@ -46,6 +46,7 @@ export interface Child {
 
 export interface ToastState {
   text: string;
+  variant?: 'success' | 'error';
 }
 
 export type TabId = 'home' | 'milestones' | 'add' | 'family' | 'profile';

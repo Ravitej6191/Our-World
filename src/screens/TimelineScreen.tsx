@@ -6,16 +6,8 @@ import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import VoiceWaveform from '../components/VoiceWaveform';
 import { EmotionChip } from '../components/EmotionGlyph';
 import { useHaptics } from '../hooks/useHaptics';
+import { CHILD_PALETTES } from '../shared/constants';
 import type { Memory, Child } from '../types';
-
-const CHILD_PALETTES = [
-  'linear-gradient(135deg, #f5c8c0, #e8a0d8)',
-  'linear-gradient(135deg, #f8d8b0, #f0b890)',
-  'linear-gradient(135deg, #b8e8d0, #90d8c0)',
-  'linear-gradient(135deg, #c8b8e8, #a898d8)',
-  'linear-gradient(135deg, #f5e0a0, #e8c870)',
-  'linear-gradient(135deg, #c0d8c0, #98c8a0)',
-];
 
 interface Props {
   child: Child;

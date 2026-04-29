@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { T, EMOTIONS, type EmotionKind } from '../tokens';
+import { T, type EmotionKind } from '../tokens';
 import Icon from '../components/Icon';
 import { EmotionChip } from '../components/EmotionGlyph';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import { useHaptics } from '../hooks/useHaptics';
+import { useStore } from '../store';
 import type { Memory } from '../types';
 
 interface Props {
@@ -19,8 +20,6 @@ const chromeBtn: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
 };
-
-const RECENT = ['First laugh', 'Grandma', 'Bath time'];
 
 type FilterId = 'all' | 'milestones' | EmotionKind;
 
@@ -37,6 +36,7 @@ const FILTERS: { id: FilterId; label: string }[] = [
 
 export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) {
   const { light } = useHaptics();
+  const { searchHistory, addSearchQuery, clearSearchHistory } = useStore();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
 
@@ -61,6 +61,16 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
 
   const isEmpty = query.trim() === '' && activeFilter === 'all';
   const hasResults = results.length > 0;
+
+  const handleSearch = (q: string) => {
+    setQuery(q);
+    if (q.trim()) addSearchQuery(q.trim());
+  };
+
+  const handleOpenMemory = (id: string) => {
+    if (query.trim()) addSearchQuery(query.trim());
+    onOpenMemory(id);
+  };
 
   return (
     <motion.div
@@ -94,7 +104,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
           <input
             autoFocus
             value={query}
-            onChange={(e) => setQuery(e.target.value)}
+            onChange={(e) => handleSearch(e.target.value)}
             placeholder="Search by title, note, or feeling…"
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
@@ -104,7 +114,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
           {query.length > 0 && (
             <motion.button
               whileTap={{ scale: 0.88 }}
-              onClick={() => setQuery('')}
+              onClick={() => { light(); setQuery(''); }}
               style={{
                 background: T.lineSoft, border: 'none', borderRadius: 10,
                 width: 22, height: 22, display: 'flex', alignItems: 'center',
@@ -152,34 +162,70 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
         scrollbarWidth: 'none',
       } as any}>
         {isEmpty ? (
-          /* Recent searches */
           <div>
-            <div style={{
-              fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
-              color: T.inkMuted, marginBottom: 14, fontWeight: 500,
-            }}>Recent searches</div>
-            <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-              {RECENT.map((r) => (
-                <motion.button
-                  key={r}
-                  whileTap={{ scale: 0.93 }}
-                  onClick={() => setQuery(r)}
-                  style={{
-                    background: T.card, border: `1px solid ${T.line}`,
-                    borderRadius: 999, padding: '8px 16px',
-                    fontSize: 14, color: T.inkSoft, cursor: 'pointer',
-                    fontFamily: T.fontSans,
-                    WebkitTapHighlightColor: 'transparent' as any,
-                    boxShadow: '0 1px 3px rgba(58,50,69,0.04)',
-                  }}
-                >
-                  {r}
-                </motion.button>
-              ))}
-            </div>
+            {searchHistory.length > 0 && (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 14 }}>
+                  <div style={{
+                    fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
+                    color: T.inkMuted, fontWeight: 500,
+                  }}>Recent searches</div>
+                  <motion.button
+                    whileTap={{ scale: 0.92 }}
+                    onClick={() => { light(); clearSearchHistory(); }}
+                    style={{
+                      background: 'none', border: 'none', cursor: 'pointer',
+                      fontSize: 12, color: T.inkMuted, padding: '4px 8px',
+                      WebkitTapHighlightColor: 'transparent' as any,
+                    }}
+                  >
+                    Clear
+                  </motion.button>
+                </div>
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8, marginBottom: 28 }}>
+                  {searchHistory.map((r) => (
+                    <motion.button
+                      key={r}
+                      whileTap={{ scale: 0.93 }}
+                      onClick={() => { light(); setQuery(r); }}
+                      style={{
+                        background: T.card, border: `1px solid ${T.line}`,
+                        borderRadius: 999, padding: '8px 16px',
+                        fontSize: 14, color: T.inkSoft, cursor: 'pointer',
+                        fontFamily: T.fontSans,
+                        WebkitTapHighlightColor: 'transparent' as any,
+                        boxShadow: '0 1px 3px rgba(58,50,69,0.04)',
+                        display: 'flex', alignItems: 'center', gap: 8,
+                      }}
+                    >
+                      <Icon name="search" size={13} color={T.inkFaint} />
+                      {r}
+                    </motion.button>
+                  ))}
+                </div>
+              </>
+            )}
+
+            {/* Suggestion to start searching */}
+            {searchHistory.length === 0 && (
+              <div style={{
+                display: 'flex', flexDirection: 'column', alignItems: 'center',
+                paddingTop: 60, gap: 14,
+              }}>
+                <div style={{
+                  width: 64, height: 64, borderRadius: 32,
+                  background: T.bgCool,
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                }}>
+                  <Icon name="search" size={28} color={T.inkFaint} />
+                </div>
+                <div style={{ fontSize: 15, color: T.inkMuted, textAlign: 'center', lineHeight: 1.5 }}>
+                  Search across all your memories by title, note, or feeling.
+                </div>
+              </div>
+            )}
           </div>
         ) : !hasResults ? (
-          /* Empty state */
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
             justifyContent: 'center', paddingTop: 80, gap: 14,
@@ -202,7 +248,6 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
             </div>
           </div>
         ) : (
-          /* Results list */
           <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
             <div style={{
               fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
@@ -212,7 +257,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
               <motion.button
                 key={memory.id}
                 whileTap={{ scale: 0.97 }}
-                onClick={() => { light(); onOpenMemory(memory.id); }}
+                onClick={() => { light(); handleOpenMemory(memory.id); }}
                 style={{
                   width: '100%', textAlign: 'left', background: T.card,
                   borderRadius: 18, border: 'none', padding: '12px 14px',
@@ -222,7 +267,6 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                   WebkitTapHighlightColor: 'transparent' as any,
                 }}
               >
-                {/* Thumbnail */}
                 <div style={{ width: 56, height: 56, borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
                   <PhotoPlaceholder
                     label=""
@@ -236,7 +280,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                   <div style={{
                     fontSize: 11, letterSpacing: '0.1em', textTransform: 'uppercase',
                     color: T.inkMuted, marginBottom: 3,
-                  }}>{memory.date}</div>
+                  }}>{memory.dateShort ?? memory.date}</div>
                   <div style={{
                     fontSize: 14.5, fontWeight: 600, color: T.ink,
                     letterSpacing: '-0.01em', lineHeight: 1.3, marginBottom: 6,

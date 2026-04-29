@@ -4,6 +4,7 @@ import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
+import { CHILD_PALETTES } from '../shared/constants';
 import type { Child } from '../types';
 
 interface Props {
@@ -16,15 +17,6 @@ interface Props {
   onAddChild: () => void;
   memoriesCount: number;
 }
-
-const CHILD_PALETTES = [
-  'linear-gradient(135deg, #f5c8c0, #e8a0d8)',
-  'linear-gradient(135deg, #f8d8b0, #f0b890)',
-  'linear-gradient(135deg, #b8e8d0, #90d8c0)',
-  'linear-gradient(135deg, #c8b8e8, #a898d8)',
-  'linear-gradient(135deg, #f5e0a0, #e8c870)',
-  'linear-gradient(135deg, #c0d8c0, #98c8a0)',
-];
 
 function computeAge(dob?: { m: string; d: string; y: string }): string {
   if (!dob || !dob.y || !dob.m || !dob.d) return '';
@@ -62,18 +54,20 @@ export default function ProfileScreen({
 }: Props) {
   const { light } = useHaptics();
   const milestones = useStore((s) => s.milestones);
+  const members = useStore((s) => s.members);
   const doneMilestones = milestones.filter((m) => m.done);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
   const initial = (child.name || 'M')[0].toUpperCase();
   const ageText = computeAge(child.dob);
   const dobText = formatDob(child.dob);
+  const currentYear = new Date().getFullYear();
 
   const PROFILE_ROWS = [
-    { icon: 'users',  label: 'Family & sharing',     sub: '3 people',                          action: onOpenFamily },
-    { icon: 'star',   label: 'Little firsts',         sub: `${doneMilestones.length} reached`,  action: onOpenMilestones },
-    { icon: 'heart',  label: 'Yearly keepsake book',  sub: 'Create your 2025 book',             action: () => {} },
-    { icon: 'sun',    label: 'Settings',              sub: 'Privacy, backup, account',          action: onOpenSettings },
-    { icon: 'plus',   label: 'Add or switch child',   sub: 'Set up another profile',            action: onAddChild },
+    { icon: 'users',  label: 'Family & sharing',    sub: `${members.length} ${members.length === 1 ? 'person' : 'people'}`, action: onOpenFamily },
+    { icon: 'star',   label: 'Little firsts',        sub: `${doneMilestones.length} reached`,    action: onOpenMilestones },
+    { icon: 'heart',  label: 'Yearly keepsake book', sub: `Create your ${currentYear} book`,     action: () => {} },
+    { icon: 'sun',    label: 'Settings',             sub: 'Privacy, backup, account',            action: onOpenSettings },
+    { icon: 'plus',   label: 'Add or switch child',  sub: 'Set up another profile',              action: onAddChild },
   ];
 
   return (
@@ -137,10 +131,16 @@ export default function ProfileScreen({
 
         <div style={{
           fontFamily: T.fontSerif, fontStyle: 'italic',
-          fontSize: 30, color: T.ink, marginBottom: 5, letterSpacing: '-0.02em',
+          fontSize: 30, color: T.ink, marginBottom: 8, letterSpacing: '-0.02em',
         }}>{child.name || 'Mira'}</div>
 
-        <div style={{ fontSize: 13.5, color: T.inkMuted }}>
+        <div style={{ fontSize: 13, color: T.inkMuted, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+          {child.pronouns && (
+            <span style={{
+              background: T.bgCool, borderRadius: 999,
+              padding: '2px 10px', fontSize: 12, color: T.lavenderDeep,
+            }}>{child.pronouns}</span>
+          )}
           {[ageText, dobText].filter(Boolean).join(' · ')}
         </div>
       </div>

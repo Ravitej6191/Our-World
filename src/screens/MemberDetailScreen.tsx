@@ -1,14 +1,15 @@
 import React, { useState } from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import Toggle from '../components/Toggle';
+import { useHaptics } from '../hooks/useHaptics';
 import type { FamilyMember } from '../types';
 
 interface Props {
   member: FamilyMember | undefined;
   onBack: () => void;
-  onRemove: () => void;
+  onRemove: (id: string) => void;
 }
 
 const chromeBtn: React.CSSProperties = {
@@ -23,8 +24,10 @@ function Divider() {
 }
 
 export default function MemberDetailScreen({ member, onBack, onRemove }: Props) {
+  const { light, medium } = useHaptics();
   const [notifyNew, setNotifyNew] = useState(true);
   const [canAdd, setCanAdd] = useState(false);
+  const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   if (!member) {
     return (
@@ -54,9 +57,9 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
         padding: '0 16px', display: 'flex', justifyContent: 'space-between',
         zIndex: 10,
       }}>
-        <button onClick={onBack} style={chromeBtn}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
           <Icon name="back" size={20} color={T.ink} />
-        </button>
+        </motion.button>
       </div>
 
       <div style={{
@@ -69,7 +72,6 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           background: `linear-gradient(180deg, ${T.bgCool} 0%, ${T.bg} 100%)`,
         }}>
-          {/* Avatar */}
           <div style={{
             width: 96, height: 96, borderRadius: 48,
             background: member.gradient,
@@ -83,46 +85,14 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
             }}>{member.initial}</span>
           </div>
 
-          {/* Name */}
           <div style={{
             fontFamily: T.fontSerif, fontStyle: 'italic',
             fontSize: 28, color: T.ink, letterSpacing: '-0.02em',
             marginBottom: 6,
           }}>{member.name}</div>
 
-          {/* Relation + joined */}
           <div style={{ fontSize: 14, color: T.inkMuted }}>
             {member.relation} · {member.joined}
-          </div>
-        </div>
-
-        {/* Stats row */}
-        <div style={{ padding: '0 20px 20px' }}>
-          <div style={{
-            background: T.card, borderRadius: 18,
-            boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-            display: 'flex',
-          }}>
-            {[
-              { label: 'Viewed', value: '128' },
-              { label: 'Reactions', value: '24' },
-              { label: 'Added', value: '3' },
-            ].map((stat, i, arr) => (
-              <div
-                key={stat.label}
-                style={{
-                  flex: 1, textAlign: 'center',
-                  padding: '16px 8px',
-                  borderRight: i < arr.length - 1 ? `1px solid ${T.lineSoft}` : 'none',
-                }}
-              >
-                <div style={{
-                  fontSize: 22, fontWeight: 700, color: T.ink,
-                  letterSpacing: '-0.02em', marginBottom: 3,
-                }}>{stat.value}</div>
-                <div style={{ fontSize: 11.5, color: T.inkMuted }}>{stat.label}</div>
-              </div>
-            ))}
           </div>
         </div>
 
@@ -137,7 +107,6 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
             background: T.card, borderRadius: 18, overflow: 'hidden',
             boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
           }}>
-            {/* Can view — always on, disabled */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '15px 18px',
@@ -155,7 +124,6 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
 
             <Divider />
 
-            {/* Notify on new */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '15px 18px',
@@ -168,12 +136,11 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                   They'll get a gentle nudge
                 </div>
               </div>
-              <Toggle value={notifyNew} onChange={setNotifyNew} />
+              <Toggle value={notifyNew} onChange={(v) => { light(); setNotifyNew(v); }} />
             </div>
 
             <Divider />
 
-            {/* Can add */}
             <div style={{
               display: 'flex', alignItems: 'center', justifyContent: 'space-between',
               padding: '15px 18px',
@@ -186,15 +153,16 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                   Contribute to the timeline
                 </div>
               </div>
-              <Toggle value={canAdd} onChange={setCanAdd} />
+              <Toggle value={canAdd} onChange={(v) => { light(); setCanAdd(v); }} />
             </div>
           </div>
         </div>
 
         {/* Remove button */}
         <div style={{ padding: '0 20px 110px' }}>
-          <button
-            onClick={onRemove}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { light(); setShowRemoveConfirm(true); }}
             style={{
               width: '100%', height: 50, borderRadius: 16,
               background: 'transparent',
@@ -208,9 +176,78 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
           >
             <Icon name="trash" size={16} color={T.blushDeep} />
             Remove from family
-          </button>
+          </motion.button>
         </div>
       </div>
+
+      {/* Remove confirmation overlay */}
+      <AnimatePresence>
+        {showRemoveConfirm && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ duration: 0.18 }}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 200,
+              background: 'rgba(58,50,69,0.55)',
+              display: 'flex', alignItems: 'flex-end',
+            }}
+            onClick={() => setShowRemoveConfirm(false)}
+          >
+            <motion.div
+              initial={{ y: '100%' }}
+              animate={{ y: 0 }}
+              exit={{ y: '100%' }}
+              transition={{ type: 'spring', damping: 28, stiffness: 320 }}
+              onClick={(e) => e.stopPropagation()}
+              style={{
+                width: '100%', background: T.card,
+                borderRadius: '24px 24px 0 0',
+                padding: '24px 24px 40px',
+                fontFamily: T.fontSans,
+              }}
+            >
+              <div style={{
+                width: 40, height: 4, borderRadius: 2,
+                background: T.lineSoft, margin: '0 auto 24px',
+              }} />
+              <div style={{ fontSize: 18, fontWeight: 600, color: T.ink, marginBottom: 8 }}>
+                Remove {member.name}?
+              </div>
+              <div style={{ fontSize: 14, color: T.inkMuted, marginBottom: 28, lineHeight: 1.5 }}>
+                {member.name} will lose access to the world. You can invite them again later.
+              </div>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { medium(); setShowRemoveConfirm(false); onRemove(member.id); }}
+                style={{
+                  width: '100%', height: 52, borderRadius: 16,
+                  background: '#d4736a', border: 'none', cursor: 'pointer',
+                  color: '#fff', fontSize: 15, fontWeight: 600,
+                  fontFamily: T.fontSans, marginBottom: 12,
+                  WebkitTapHighlightColor: 'transparent' as any,
+                }}
+              >
+                Yes, remove
+              </motion.button>
+              <motion.button
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { light(); setShowRemoveConfirm(false); }}
+                style={{
+                  width: '100%', height: 52, borderRadius: 16,
+                  background: 'transparent', border: `1.5px solid ${T.line}`,
+                  cursor: 'pointer', color: T.ink, fontSize: 15,
+                  fontWeight: 500, fontFamily: T.fontSans,
+                  WebkitTapHighlightColor: 'transparent' as any,
+                }}
+              >
+                Cancel
+              </motion.button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </motion.div>
   );
 }

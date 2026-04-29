@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
-import { SAMPLE_MEMBERS } from '../data';
+import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
 import type { FamilyMember } from '../types';
 
@@ -62,6 +62,7 @@ function MemberRow({ member, onOpen }: { member: FamilyMember; onOpen: () => voi
 
 export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) {
   const { light, medium } = useHaptics();
+  const members = useStore((s) => s.members);
   const [privacyMode, setPrivacyMode] = useState<'just' | 'shared'>('just');
 
   return (
@@ -91,7 +92,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
             <div style={{
               fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
               color: T.inkMuted, marginBottom: 5,
-            }}>Family</div>
+            }}>Family · {members.length} {members.length === 1 ? 'person' : 'people'}</div>
             <div style={{
               fontSize: 28, fontWeight: 500, color: T.ink,
               letterSpacing: '-0.02em', lineHeight: 1.1,
@@ -137,7 +138,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       } as any}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {SAMPLE_MEMBERS.map((member) => (
+          {members.map((member) => (
             <MemberRow
               key={member.id}
               member={member}

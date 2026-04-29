@@ -4,10 +4,12 @@ import { T } from '../tokens';
 import Icon from '../components/Icon';
 import EmotionGlyph from '../components/EmotionGlyph';
 import { useHaptics } from '../hooks/useHaptics';
-import type { Milestone } from '../types';
+import { getMilestoneCopy } from '../shared/constants';
+import type { Milestone, Memory } from '../types';
 
 interface Props {
   milestone: Milestone | undefined;
+  memories: Memory[];
   onBack: () => void;
   onAddMemory: () => void;
 }
@@ -19,7 +21,7 @@ const chromeBtn: React.CSSProperties = {
   cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
 };
 
-export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }: Props) {
+export default function MilestoneDetailScreen({ milestone, memories, onBack, onAddMemory }: Props) {
   const { light, medium } = useHaptics();
   if (!milestone) {
     return (
@@ -33,11 +35,12 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
     );
   }
 
+  const linkedMemories = memories.filter((m) => m.milestoneId === milestone.id);
   const heroGrad = milestone.done
     ? 'linear-gradient(135deg, #fdf5dc, #fae8b0, #f8e090)'
     : 'linear-gradient(135deg, #e8e0f5, #d8cef0, #e0d8f5)';
-
   const heroColor = milestone.done ? T.gold : T.lavenderDeep;
+  const contextCopy = getMilestoneCopy(milestone.id, milestone.label, milestone.done);
 
   return (
     <motion.div
@@ -116,9 +119,9 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
           }}>{milestone.label}</div>
 
           {!milestone.done && (
-            <div style={{
-              fontSize: 13, color: T.inkMuted, lineHeight: 1.5,
-            }}>This milestone hasn't happened yet. When it does, capture it.</div>
+            <div style={{ fontSize: 13, color: T.inkMuted, lineHeight: 1.5 }}>
+              This milestone hasn't happened yet. When it does, capture it.
+            </div>
           )}
         </div>
       </div>
@@ -130,20 +133,16 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
           fontSize: 15.5, color: T.inkSoft, lineHeight: 1.65,
           letterSpacing: '0.005em',
         }}>
-          {milestone.done
-            ? `A moment that changes everything. ${milestone.label} is one of those firsts you'll always want to remember — the look on her face, the sounds she made, and how time seemed to pause for a second.`
-            : `${milestone.label} is a milestone worth waiting for. When it happens, come back here and capture every detail. These are the moments that become the whole story.`
-          }
+          {contextCopy}
         </div>
 
-        {/* Memories linked card */}
+        {/* Memories linked card — real count */}
         {milestone.done && (
           <div style={{
             background: T.card, borderRadius: 18,
             padding: '16px 18px',
             boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
             display: 'flex', alignItems: 'center', gap: 14,
-            cursor: 'pointer',
           }}>
             <div style={{
               width: 42, height: 42, borderRadius: 14,
@@ -155,13 +154,21 @@ export default function MilestoneDetailScreen({ milestone, onBack, onAddMemory }
             </div>
             <div style={{ flex: 1 }}>
               <div style={{ fontSize: 15, fontWeight: 600, color: T.ink, marginBottom: 2 }}>
-                3 memories linked
+                {linkedMemories.length === 0
+                  ? 'No memories linked yet'
+                  : `${linkedMemories.length} ${linkedMemories.length === 1 ? 'memory' : 'memories'} linked`
+                }
               </div>
               <div style={{ fontSize: 13, color: T.inkMuted }}>
-                See everything from this day
+                {linkedMemories.length === 0
+                  ? 'Capture this moment below'
+                  : 'See everything from this day'
+                }
               </div>
             </div>
-            <Icon name="chevron" size={16} color={T.inkFaint} />
+            {linkedMemories.length > 0 && (
+              <Icon name="chevron" size={16} color={T.inkFaint} />
+            )}
           </div>
         )}
 

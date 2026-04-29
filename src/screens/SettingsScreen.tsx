@@ -1,9 +1,10 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import Toggle from '../components/Toggle';
 import { useHaptics } from '../hooks/useHaptics';
+import { useStore } from '../store';
 
 interface Props {
   onBack: () => void;
@@ -50,9 +51,7 @@ function Divider() {
 
 export default function SettingsScreen({ onBack }: Props) {
   const { light } = useHaptics();
-  const [faceId, setFaceId] = useState(false);
-  const [privateMode, setPrivateMode] = useState(false);
-  const [autoSave, setAutoSave] = useState(true);
+  const { settings, updateSettings } = useStore();
 
   return (
     <div style={{
@@ -94,14 +93,24 @@ export default function SettingsScreen({ onBack }: Props) {
             icon="lock"
             label="Face ID / Touch ID"
             sub="Require biometrics to open"
-            right={<Toggle value={faceId} onChange={setFaceId} />}
+            right={
+              <Toggle
+                value={settings.faceId}
+                onChange={(v) => updateSettings({ faceId: v })}
+              />
+            }
           />
           <Divider />
           <SettingsRow
             icon="eye"
             label="Private mode"
             sub="Blur content in app switcher"
-            right={<Toggle value={privateMode} onChange={setPrivateMode} />}
+            right={
+              <Toggle
+                value={settings.privateMode}
+                onChange={(v) => updateSettings({ privateMode: v })}
+              />
+            }
           />
         </div>
 
@@ -118,7 +127,12 @@ export default function SettingsScreen({ onBack }: Props) {
             icon="cloud"
             label="Auto-save to cloud"
             sub="Backed up after every memory"
-            right={<Toggle value={autoSave} onChange={setAutoSave} />}
+            right={
+              <Toggle
+                value={settings.autoSave}
+                onChange={(v) => updateSettings({ autoSave: v })}
+              />
+            }
           />
           <Divider />
           <SettingsRow

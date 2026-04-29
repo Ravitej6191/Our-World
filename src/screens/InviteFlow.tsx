@@ -40,6 +40,21 @@ function Divider() {
   return <div style={{ height: 1, background: T.lineSoft }} />;
 }
 
+function validateContact(value: string, mode: 'email' | 'text'): string | null {
+  if (!value.trim()) return null;
+  if (mode === 'email') {
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim())) {
+      return 'Please enter a valid email address';
+    }
+  } else {
+    const digits = value.replace(/\D/g, '');
+    if (digits.length < 7 || digits.length > 15) {
+      return 'Please enter a valid phone number';
+    }
+  }
+  return null;
+}
+
 export default function InviteFlow({ onClose, onInvited }: Props) {
   const { light, medium, success } = useHaptics();
   const [step, setStep] = useState<Step>('pick');
@@ -47,6 +62,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
   const [contactMode, setContactMode] = useState<'email' | 'text'>('email');
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
+  const [contactError, setContactError] = useState<string | null>(null);
   const [canView] = useState(true);
   const [canReact, setCanReact] = useState(true);
   const [canAdd, setCanAdd] = useState(false);
@@ -58,7 +74,19 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
     setTimeout(() => { onInvited({ name }); }, 3000);
   };
 
-  const canSendNext = name.trim().length > 0 && contact.trim().length > 0;
+  const handleContactChange = (v: string) => {
+    setContact(v);
+    if (contactError) setContactError(null);
+  };
+
+  const handleNextToPermissions = () => {
+    const err = validateContact(contact, contactMode);
+    if (err) { setContactError(err); return; }
+    medium();
+    setStep('permissions');
+  };
+
+  const canSendNext = name.trim().length > 0 && contact.trim().length > 0 && !contactError;
 
   return (
     <div style={{
@@ -146,7 +174,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                   <motion.button
                     key={mode}
                     whileTap={{ scale: 0.95 }}
-                    onClick={() => { light(); setContactMode(mode); }}
+                    onClick={() => { light(); setContactMode(mode); setContactError(null); }}
                     style={{
                       padding: '8px 20px', borderRadius: 11, border: 'none', cursor: 'pointer',
                       fontSize: 13, fontWeight: 500, fontFamily: T.fontSans,
@@ -173,22 +201,43 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                     } as any}
                   />
                 </div>
-                <div style={{ background: T.card, border: `1px solid ${T.line}`, borderRadius: 14, padding: '14px 16px' }}>
+                <div>
                   <div style={{
-                    fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
-                    color: T.inkMuted, marginBottom: 8,
+                    background: T.card, border: `1px solid ${contactError ? T.blushDeep : T.line}`,
+                    borderRadius: 14, padding: '14px 16px',
+                    transition: 'border-color 0.15s',
                   }}>
-                    {contactMode === 'email' ? 'Email address' : 'Phone number'}
+                    <div style={{
+                      fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
+                      color: T.inkMuted, marginBottom: 8,
+                    }}>
+                      {contactMode === 'email' ? 'Email address' : 'Phone number'}
+                    </div>
+                    <input
+                      value={contact} onChange={(e) => handleContactChange(e.target.value)}
+                      placeholder={contactMode === 'email' ? 'hello@example.com' : '+1 (555) 000-0000'}
+                      type={contactMode === 'email' ? 'email' : 'tel'}
+                      style={{
+                        width: '100%', border: 'none', outline: 'none', background: 'transparent',
+                        fontSize: 16, color: T.ink, fontFamily: T.fontSans,
+                      } as any}
+                    />
                   </div>
-                  <input
-                    value={contact} onChange={(e) => setContact(e.target.value)}
-                    placeholder={contactMode === 'email' ? 'hello@example.com' : '+1 (555) 000-0000'}
-                    type={contactMode === 'email' ? 'email' : 'tel'}
-                    style={{
-                      width: '100%', border: 'none', outline: 'none', background: 'transparent',
-                      fontSize: 16, color: T.ink, fontFamily: T.fontSans,
-                    } as any}
-                  />
+                  <AnimatePresence>
+                    {contactError && (
+                      <motion.div
+                        initial={{ opacity: 0, y: -4 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        exit={{ opacity: 0 }}
+                        style={{
+                          marginTop: 8, fontSize: 12.5, color: T.blushDeep,
+                          paddingLeft: 4,
+                        }}
+                      >
+                        {contactError}
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                 </div>
                 <div style={{ background: T.bgCool, borderRadius: 14, padding: '14px 16px', display: 'flex', gap: 12, alignItems: 'flex-start' }}>
                   <Icon name="info" size={16} color={T.lavenderDeep} />
@@ -198,7 +247,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                 </div>
                 <motion.button
                   whileTap={canSendNext ? { scale: 0.97 } : {}}
-                  onClick={() => { if (canSendNext) { medium(); setStep('permissions'); } }}
+                  onClick={handleNextToPermissions}
                   disabled={!canSendNext}
                   style={{
                     width: '100%', height: 54, borderRadius: 18,
