@@ -3,7 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import { App as CapApp } from '@capacitor/app';
 import { useStore } from './store';
 import type { TabId } from './types';
-import { MILESTONES, SAMPLE_MEMBERS } from './data';
+import { SAMPLE_MEMBERS } from './data';
 
 import SplashScreen from './screens/SplashScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
@@ -80,9 +80,12 @@ function nowDate() {
 function nowTime() {
   return new Date().toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit', hour12: true });
 }
+function todayShort() {
+  return new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' });
+}
 
 export default function App() {
-  const { child, memories, toast, setChild, addMemory, showToast, clearToast } = useStore();
+  const { child, memories, milestones, toast, setChild, addMemory, markMilestoneDone, showToast, clearToast } = useStore();
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -133,7 +136,7 @@ export default function App() {
     emotion: any; isMilestone: boolean; milestoneId?: string;
   }) => {
     const id = `m${Date.now()}`;
-    const milestone = MILESTONES.find(ml => ml.id === m.milestoneId);
+    const milestone = milestones.find(ml => ml.id === m.milestoneId);
     addMemory({
       id,
       date: nowDate(),
@@ -150,13 +153,19 @@ export default function App() {
       milestoneLabel: milestone?.label,
       milestoneId: m.milestoneId,
     });
+
+    // Mark milestone as done in store when linked
+    if (m.isMilestone && m.milestoneId) {
+      markMilestoneDone(m.milestoneId, todayShort(), 'lavender', m.emotion);
+    }
+
     setPendingMilestoneId(null);
     pop();
     showToast({ text: 'Memory saved ✓' });
   };
 
   const selectedMemory = memories.find(m => m.id === openMemoryId);
-  const selectedMilestone = MILESTONES.find(m => m.id === openMilestoneId);
+  const selectedMilestone = milestones.find(m => m.id === openMilestoneId);
   const selectedMember = SAMPLE_MEMBERS.find(m => m.id === openMemberId);
 
   const isModal = screen === 'addMemory' || screen === 'addChild' || screen === 'invite';
@@ -272,6 +281,7 @@ export default function App() {
               onOpenSettings={() => push('settings')}
               onOpenMilestones={() => { setActiveTab('milestones'); jumpTab('milestones'); }}
               onOpenFamily={() => { setActiveTab('family'); jumpTab('family'); }}
+              onAddChild={() => push('addChild')}
             />
           )}
 

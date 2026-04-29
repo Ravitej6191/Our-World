@@ -185,10 +185,26 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
       style={{
         position: 'absolute', inset: 0, background: T.bg,
         fontFamily: T.fontSans, display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
+      {/* Decorative background orbs */}
+      <div style={{
+        position: 'absolute', top: -60, left: -60, width: 260, height: 260,
+        borderRadius: '50%', background: 'rgba(196,181,232,0.22)', filter: 'blur(50px)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute', top: 120, right: -80, width: 200, height: 200,
+        borderRadius: '50%', background: 'rgba(240,204,200,0.2)', filter: 'blur(40px)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+
       {/* Header */}
-      <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 16px`, flexShrink: 0 }}>
+      <div style={{
+        padding: `calc(${T.safeTop} + 12px) 24px 16px`, flexShrink: 0,
+        position: 'relative', zIndex: 1,
+      }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
             <div style={{
@@ -227,7 +243,7 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
       {/* Timeline */}
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
-        scrollbarWidth: 'none',
+        scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       } as any}>
         {groups.length === 0 ? (
           <div style={{
@@ -268,7 +284,9 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
                         width: 8, height: 8, borderRadius: 4, marginTop: 14,
                         background: memory.milestone ? T.gold : T.lavenderDeep,
                         flexShrink: 0,
-                        boxShadow: memory.milestone ? `0 0 0 3px rgba(212,168,71,0.2)` : `0 0 0 3px rgba(139,111,199,0.15)`,
+                        boxShadow: memory.milestone
+                          ? `0 0 0 3px rgba(212,168,71,0.2)`
+                          : `0 0 0 3px rgba(139,111,199,0.15)`,
                       }} />
                       {idx < group.items.length - 1 && (
                         <div style={{

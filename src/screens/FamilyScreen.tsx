@@ -3,6 +3,7 @@ import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { SAMPLE_MEMBERS } from '../data';
+import { useHaptics } from '../hooks/useHaptics';
 import type { FamilyMember } from '../types';
 
 interface Props {
@@ -19,9 +20,11 @@ const chromeBtn: React.CSSProperties = {
 };
 
 function MemberRow({ member, onOpen }: { member: FamilyMember; onOpen: () => void }) {
+  const { light } = useHaptics();
   return (
-    <button
-      onClick={onOpen}
+    <motion.button
+      whileTap={{ scale: 0.97 }}
+      onClick={() => { light(); onOpen(); }}
       style={{
         background: 'white', borderRadius: 20,
         border: `1px solid ${T.line}`,
@@ -53,11 +56,12 @@ function MemberRow({ member, onOpen }: { member: FamilyMember; onOpen: () => voi
         </div>
       </div>
       <Icon name="chevron" size={16} color={T.inkFaint} />
-    </button>
+    </motion.button>
   );
 }
 
 export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) {
+  const { light, medium } = useHaptics();
   const [privacyMode, setPrivacyMode] = useState<'just' | 'shared'>('just');
 
   return (
@@ -70,12 +74,19 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
         fontFamily: T.fontSans, display: 'flex', flexDirection: 'column',
       }}
     >
+      {/* Decorative orbs */}
+      <div style={{
+        position: 'absolute', top: -40, right: -40, width: 200, height: 200,
+        borderRadius: '50%', background: 'rgba(196,181,232,0.18)', filter: 'blur(40px)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+
       {/* Header */}
-      <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 0`, flexShrink: 0 }}>
+      <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 0`, flexShrink: 0, position: 'relative', zIndex: 1 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
-          <button onClick={onBack} style={chromeBtn}>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />
-          </button>
+          </motion.button>
           <div style={{ flex: 1 }}>
             <div style={{
               fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
@@ -99,9 +110,10 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
           width: 'fit-content',
         }}>
           {(['just', 'shared'] as const).map((mode) => (
-            <button
+            <motion.button
               key={mode}
-              onClick={() => setPrivacyMode(mode)}
+              whileTap={{ scale: 0.95 }}
+              onClick={() => { light(); setPrivacyMode(mode); }}
               style={{
                 padding: '8px 18px', borderRadius: 11, border: 'none', cursor: 'pointer',
                 fontSize: 13, fontWeight: 500, fontFamily: T.fontSans,
@@ -114,7 +126,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
               }}
             >
               {mode === 'just' ? 'Just me' : 'Shared'}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
@@ -122,7 +134,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
       {/* Scrollable list */}
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
-        scrollbarWidth: 'none',
+        scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       } as any}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {SAMPLE_MEMBERS.map((member) => (
@@ -134,8 +146,9 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
           ))}
 
           {/* Invite row */}
-          <button
-            onClick={onInvite}
+          <motion.button
+            whileTap={{ scale: 0.97 }}
+            onClick={() => { medium(); onInvite(); }}
             style={{
               background: 'transparent',
               border: `1.5px dashed ${T.line}`,
@@ -162,7 +175,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
               </div>
             </div>
             <Icon name="chevron" size={16} color={T.inkFaint} />
-          </button>
+          </motion.button>
         </div>
 
         {/* Info note */}

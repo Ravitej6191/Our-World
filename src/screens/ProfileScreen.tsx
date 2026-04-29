@@ -2,7 +2,7 @@ import React from 'react';
 import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
-import { MILESTONES } from '../data';
+import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
 import type { Child } from '../types';
 
@@ -13,6 +13,7 @@ interface Props {
   onOpenSettings: () => void;
   onOpenMilestones: () => void;
   onOpenFamily: () => void;
+  onAddChild: () => void;
   memoriesCount: number;
 }
 
@@ -46,7 +47,7 @@ function formatDob(dob?: { m: string; d: string; y: string }): string {
   if (!dob || !dob.y || !dob.m || !dob.d) return '';
   const months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   const m = months[Number(dob.m) - 1] ?? '';
-  return `born ${m} ${dob.d}, ${dob.y}`;
+  return `born ${dob.d} ${m} ${dob.y}`;
 }
 
 const chromeBtn: React.CSSProperties = {
@@ -56,19 +57,23 @@ const chromeBtn: React.CSSProperties = {
   cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
 };
 
-export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, onOpenMilestones, onOpenFamily, memoriesCount }: Props) {
+export default function ProfileScreen({
+  child, onBack, onEdit, onOpenSettings, onOpenMilestones, onOpenFamily, onAddChild, memoriesCount,
+}: Props) {
   const { light } = useHaptics();
-  const doneMilestones = MILESTONES.filter((m) => m.done);
+  const milestones = useStore((s) => s.milestones);
+  const doneMilestones = milestones.filter((m) => m.done);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
   const initial = (child.name || 'M')[0].toUpperCase();
   const ageText = computeAge(child.dob);
   const dobText = formatDob(child.dob);
 
   const PROFILE_ROWS = [
-    { icon: 'users',  label: 'Family & sharing',     sub: '3 people',                        action: onOpenFamily },
-    { icon: 'star',   label: 'Little firsts',         sub: `${doneMilestones.length} reached`, action: onOpenMilestones },
-    { icon: 'heart',  label: 'Yearly keepsake book',  sub: 'Create your 2025 book',            action: () => {} },
-    { icon: 'sun',    label: 'Settings',              sub: 'Privacy, backup, account',         action: onOpenSettings },
+    { icon: 'users',  label: 'Family & sharing',     sub: '3 people',                          action: onOpenFamily },
+    { icon: 'star',   label: 'Little firsts',         sub: `${doneMilestones.length} reached`,  action: onOpenMilestones },
+    { icon: 'heart',  label: 'Yearly keepsake book',  sub: 'Create your 2025 book',             action: () => {} },
+    { icon: 'sun',    label: 'Settings',              sub: 'Privacy, backup, account',          action: onOpenSettings },
+    { icon: 'plus',   label: 'Add or switch child',   sub: 'Set up another profile',            action: onAddChild },
   ];
 
   return (
@@ -82,10 +87,23 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
         scrollbarWidth: 'none',
       } as any}
     >
+      {/* Decorative background orbs */}
+      <div style={{
+        position: 'absolute', top: -30, right: -50, width: 240, height: 240,
+        borderRadius: '50%', background: 'rgba(196,181,232,0.22)', filter: 'blur(50px)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute', top: 200, left: -60, width: 180, height: 180,
+        borderRadius: '50%', background: 'rgba(240,204,200,0.18)', filter: 'blur(40px)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+
       {/* Top chrome */}
       <div style={{
         padding: `calc(${T.safeTop} + 12px) 20px 0`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+        position: 'relative', zIndex: 1,
       }}>
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
           <Icon name="back" size={20} color={T.ink} />
@@ -98,7 +116,7 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
       {/* Avatar + name */}
       <div style={{
         display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '28px 24px 0',
+        padding: '28px 24px 0', position: 'relative', zIndex: 1,
       }}>
         <motion.div
           whileTap={{ scale: 0.96 }}
@@ -128,7 +146,7 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
       </div>
 
       {/* Stats card */}
-      <div style={{ padding: '24px 20px 0' }}>
+      <div style={{ padding: '24px 20px 0', position: 'relative', zIndex: 1 }}>
         <div style={{
           background: T.card, borderRadius: 20,
           boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
@@ -153,7 +171,7 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
       </div>
 
       {/* Quick links */}
-      <div style={{ padding: '24px 20px 0' }}>
+      <div style={{ padding: '24px 20px 0', position: 'relative', zIndex: 1 }}>
         <div style={{
           background: T.card, borderRadius: 18, overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
@@ -161,7 +179,7 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
           {PROFILE_ROWS.map((row, i, arr) => (
             <React.Fragment key={row.label}>
               <motion.button
-                whileTap={{ scale: 0.99, background: T.bgCool }}
+                whileTap={{ scale: 0.99, backgroundColor: T.bgCool }}
                 onClick={() => { light(); row.action(); }}
                 style={{
                   width: '100%', display: 'flex', alignItems: 'center', gap: 14,
@@ -191,7 +209,7 @@ export default function ProfileScreen({ child, onBack, onEdit, onOpenSettings, o
       </div>
 
       {/* Quote */}
-      <div style={{ padding: '20px 20px 110px' }}>
+      <div style={{ padding: '20px 20px 110px', position: 'relative', zIndex: 1 }}>
         <div style={{
           background: T.bgCool, borderRadius: 18,
           padding: '20px 22px', textAlign: 'center',

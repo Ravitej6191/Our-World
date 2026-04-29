@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import EmotionGlyph from '../components/EmotionGlyph';
-import { MILESTONES } from '../data';
+import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
 import type { Milestone } from '../types';
 
@@ -143,8 +143,9 @@ function MilestoneTile({ milestone, onOpen, onCapture }: {
 
 export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryForMilestone }: Props) {
   const { light } = useHaptics();
-  const done = MILESTONES.filter((m) => m.done).length;
-  const total = MILESTONES.length;
+  const milestones = useStore((s) => s.milestones);
+  const done = milestones.filter((m) => m.done).length;
+  const total = milestones.length;
 
   return (
     <motion.div
@@ -154,10 +155,26 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
       style={{
         position: 'absolute', inset: 0, background: T.bg,
         fontFamily: T.fontSans, display: 'flex', flexDirection: 'column',
+        overflow: 'hidden',
       }}
     >
+      {/* Decorative background orbs */}
+      <div style={{
+        position: 'absolute', top: -40, right: -50, width: 220, height: 220,
+        borderRadius: '50%', background: 'rgba(212,168,71,0.12)', filter: 'blur(45px)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+      <div style={{
+        position: 'absolute', bottom: 100, left: -60, width: 180, height: 180,
+        borderRadius: '50%', background: 'rgba(196,181,232,0.15)', filter: 'blur(40px)',
+        pointerEvents: 'none', zIndex: 0,
+      }} />
+
       {/* Header */}
-      <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 20px`, flexShrink: 0 }}>
+      <div style={{
+        padding: `calc(${T.safeTop} + 12px) 24px 20px`,
+        flexShrink: 0, position: 'relative', zIndex: 1,
+      }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 4 }}>
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />
@@ -183,10 +200,10 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
       {/* Grid */}
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
-        scrollbarWidth: 'none',
+        scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       } as any}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-          {MILESTONES.map((m) => (
+          {milestones.map((m) => (
             <MilestoneTile
               key={m.id}
               milestone={m}

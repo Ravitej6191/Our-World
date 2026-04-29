@@ -4,6 +4,7 @@ import { T, EMOTIONS, type EmotionKind } from '../tokens';
 import Icon from '../components/Icon';
 import { EmotionChip } from '../components/EmotionGlyph';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
+import { useHaptics } from '../hooks/useHaptics';
 import type { Memory } from '../types';
 
 interface Props {
@@ -35,6 +36,7 @@ const FILTERS: { id: FilterId; label: string }[] = [
 ];
 
 export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) {
+  const { light } = useHaptics();
   const [query, setQuery] = useState('');
   const [activeFilter, setActiveFilter] = useState<FilterId>('all');
 
@@ -73,9 +75,9 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
       {/* Top bar */}
       <div style={{ padding: `calc(${T.safeTop} + 12px) 20px 0`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
-          <button onClick={onBack} style={chromeBtn}>
+          <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />
-          </button>
+          </motion.button>
           <span style={{
             fontSize: 16, fontWeight: 600, color: T.ink, letterSpacing: '-0.01em',
           }}>Search memories</span>
@@ -97,11 +99,11 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
               fontSize: 15, color: T.ink, fontFamily: T.fontSans,
-              '::placeholder': { color: T.inkFaint },
             } as any}
           />
           {query.length > 0 && (
-            <button
+            <motion.button
+              whileTap={{ scale: 0.88 }}
               onClick={() => setQuery('')}
               style={{
                 background: T.lineSoft, border: 'none', borderRadius: 10,
@@ -112,7 +114,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
               }}
             >
               <Icon name="close" size={12} color={T.inkMuted} strokeWidth={2.2} />
-            </button>
+            </motion.button>
           )}
         </div>
 
@@ -123,9 +125,10 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
           scrollbarWidth: 'none',
         } as any}>
           {FILTERS.map((f) => (
-            <button
+            <motion.button
               key={f.id}
-              onClick={() => setActiveFilter(f.id)}
+              whileTap={{ scale: 0.93 }}
+              onClick={() => { light(); setActiveFilter(f.id); }}
               style={{
                 flexShrink: 0, height: 32, padding: '0 14px',
                 borderRadius: 999,
@@ -138,7 +141,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
               }}
             >
               {f.label}
-            </button>
+            </motion.button>
           ))}
         </div>
       </div>
@@ -157,8 +160,9 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
             }}>Recent searches</div>
             <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
               {RECENT.map((r) => (
-                <button
+                <motion.button
                   key={r}
+                  whileTap={{ scale: 0.93 }}
                   onClick={() => setQuery(r)}
                   style={{
                     background: T.card, border: `1px solid ${T.line}`,
@@ -170,7 +174,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                   }}
                 >
                   {r}
-                </button>
+                </motion.button>
               ))}
             </div>
           </div>
@@ -205,9 +209,10 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
               color: T.inkMuted, marginBottom: 4, fontWeight: 500,
             }}>{results.length} result{results.length !== 1 ? 's' : ''}</div>
             {results.map((memory) => (
-              <button
+              <motion.button
                 key={memory.id}
-                onClick={() => onOpenMemory(memory.id)}
+                whileTap={{ scale: 0.97 }}
+                onClick={() => { light(); onOpenMemory(memory.id); }}
                 style={{
                   width: '100%', textAlign: 'left', background: T.card,
                   borderRadius: 18, border: 'none', padding: '12px 14px',
@@ -240,7 +245,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                   <EmotionChip kind={memory.emotion} size="sm" />
                 </div>
                 <Icon name="chevron" size={16} color={T.inkFaint} />
-              </button>
+              </motion.button>
             ))}
           </div>
         )}
