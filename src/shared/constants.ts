@@ -31,7 +31,7 @@ export const MILESTONE_COPY: Record<string, { done: string; pending: string }> =
   },
   roll:   {
     done:    'Rolling over is the first taste of independence. One small movement, one giant shift in the world.',
-    pending: 'Tummy time and floor play are the training ground. One day it'll just happen.',
+    pending: "Tummy time and floor play are the training ground. One day it'll just happen.",
   },
   sit:    {
     done:    'Sitting up alone opens a whole new perspective — literally. The world looks different from here.',
