@@ -9,6 +9,7 @@ import { EMOTION_TONE } from './shared/constants';
 import SplashScreen from './screens/SplashScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import AddChildFlow from './screens/AddChildFlow';
+import SwitchChildScreen from './screens/SwitchChildScreen';
 import TimelineScreen from './screens/TimelineScreen';
 import MilestonesScreen from './screens/MilestonesScreen';
 import MilestoneDetailScreen from './screens/MilestoneDetailScreen';
@@ -22,9 +23,10 @@ import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
 import TabBar from './components/TabBar';
 import Toast from './components/Toast';
+import type { ChildFlowMode } from './screens/AddChildFlow';
 
 type Screen =
-  | 'splash' | 'onboarding' | 'addChild'
+  | 'splash' | 'onboarding' | 'addChild' | 'switchChild'
   | 'home' | 'milestones' | 'milestoneDetail'
   | 'search' | 'addMemory' | 'memoryDetail'
   | 'family' | 'memberDetail' | 'invite'
@@ -38,9 +40,9 @@ const slide = {
   exit:  (d: number) => ({ x: d >= 0 ? '-100%' : '100%', opacity: 0 }),
 };
 const fade = {
-  enter:  { opacity: 0, y: 16 },
+  enter:  { opacity: 0, y: 10 },
   center: { opacity: 1, y: 0 },
-  exit:   { opacity: 0, y: -8 },
+  exit:   { opacity: 0, y: -6 },
 };
 
 function useNav(initial: Screen) {
@@ -87,10 +89,11 @@ function todayShort() {
 
 export default function App() {
   const {
-    child, memories, milestones, toast,
+    child, children, memories, milestones, toast, onboardingDone,
     setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
-    removeMember, showToast, clearToast,
+    removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
   } = useStore();
+
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
@@ -98,6 +101,7 @@ export default function App() {
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);
   const [openMemberId, setOpenMemberId] = useState<string | null>(null);
   const [pendingMilestoneId, setPendingMilestoneId] = useState<string | null>(null);
+  const [childFlowMode, setChildFlowMode] = useState<ChildFlowMode>('setup');
 
   useFirestoreSync();
 
@@ -182,12 +186,36 @@ export default function App() {
     showToast({ text: 'Member removed', variant: 'success' });
   };
 
+  const handleChildFlowDone = (c: import('./types').Child) => {
+    if (childFlowMode === 'setup') {
+      completeOnboarding(c);
+      replace('home');
+    } else if (childFlowMode === 'edit') {
+      setChild(c);
+      pop();
+      showToast({ text: 'Profile updated', variant: 'success' });
+    } else {
+      addChildProfile(c);
+      replace('home');
+      showToast({ text: 'New profile added', variant: 'success' });
+    }
+  };
+
+  const handleSplashContinue = () => {
+    if (onboardingDone) {
+      replace('home');
+    } else {
+      replace('onboarding');
+    }
+  };
+
   const selectedMemory = memories.find(m => m.id === openMemoryId);
   const selectedMilestone = milestones.find(m => m.id === openMilestoneId);
   const members = useStore((s) => s.members);
   const selectedMember = members.find(m => m.id === openMemberId);
 
-  const isModal = screen === 'addMemory' || screen === 'addChild' || screen === 'invite';
+  const isModal = screen === 'addMemory' || screen === 'invite';
+  const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || isModal;
   const transition = { type: 'tween', ease: [0.32, 0, 0.16, 1], duration: 0.32 } as const;
 
   return (
@@ -196,7 +224,7 @@ export default function App() {
         <motion.div
           key={screen}
           custom={dir}
-          variants={isModal ? fade : slide}
+          variants={usesFade ? fade : slide}
           initial="enter"
           animate="center"
           exit="exit"
@@ -204,7 +232,7 @@ export default function App() {
           style={{ position: 'absolute', inset: 0 }}
         >
           {screen === 'splash' && (
-            <SplashScreen onContinue={() => replace('onboarding')} />
+            <SplashScreen onContinue={handleSplashContinue} />
           )}
 
           {screen === 'onboarding' && (
@@ -213,8 +241,24 @@ export default function App() {
 
           {screen === 'addChild' && (
             <AddChildFlow
-              onDone={(c) => { setChild(c); replace('home'); }}
-              onBack={() => replace('onboarding')}
+              mode={childFlowMode}
+              initialChild={childFlowMode === 'edit' ? child : undefined}
+              onDone={handleChildFlowDone}
+              onBack={() => {
+                if (childFlowMode === 'setup') replace('onboarding');
+                else pop();
+              }}
+            />
+          )}
+
+          {screen === 'switchChild' && (
+            <SwitchChildScreen
+              onBack={pop}
+              onSwitch={() => replace('home')}
+              onAddChild={() => {
+                setChildFlowMode('add');
+                push('addChild');
+              }}
             />
           )}
 
@@ -299,13 +343,15 @@ export default function App() {
           {screen === 'profile' && (
             <ProfileScreen
               child={child}
+              children={children}
               memoriesCount={memories.length}
               onBack={() => { setActiveTab('home'); jumpTab('home'); }}
-              onEdit={() => push('addChild')}
+              onEdit={() => { setChildFlowMode('edit'); push('addChild'); }}
               onOpenSettings={() => push('settings')}
               onOpenMilestones={() => { setActiveTab('milestones'); jumpTab('milestones'); }}
               onOpenFamily={() => { setActiveTab('family'); jumpTab('family'); }}
-              onAddChild={() => push('addChild')}
+              onSwitchChild={() => push('switchChild')}
+              onAddChild={() => { setChildFlowMode('add'); push('addChild'); }}
             />
           )}
 

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import { useHaptics } from '../hooks/useHaptics';
@@ -7,6 +7,12 @@ interface Props { onContinue: () => void; }
 
 export default function SplashScreen({ onContinue }: Props) {
   const { medium } = useHaptics();
+
+  useEffect(() => {
+    const t = setTimeout(() => onContinue(), 2400);
+    return () => clearTimeout(t);
+  }, [onContinue]);
+
   return (
     <div style={{
       height: '100%', position: 'relative', overflow: 'hidden',
@@ -25,13 +31,18 @@ export default function SplashScreen({ onContinue }: Props) {
       }} />
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
-        animate={{ opacity: 1, y: 0 }}
-        transition={{ duration: 0.7, ease: 'easeOut' }}
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
         style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '0 40px', marginTop: -40 }}
       >
         {/* Logo mark */}
-        <div style={{ display: 'inline-flex', marginBottom: 28 }}>
+        <motion.div
+          initial={{ opacity: 0, y: 10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.1, duration: 0.7, ease: 'easeOut' }}
+          style={{ display: 'inline-flex', marginBottom: 28 }}
+        >
           <svg width="96" height="96" viewBox="0 0 96 96">
             <defs>
               <radialGradient id="lav" cx="35%" cy="35%">
@@ -47,28 +58,38 @@ export default function SplashScreen({ onContinue }: Props) {
             <circle cx="62" cy="48" r="26" fill="url(#bls)" opacity="0.9" />
             <circle cx="48" cy="48" r="10" fill="#3a3245" opacity="0.92" />
           </svg>
-        </div>
+        </motion.div>
 
-        <div style={{
-          fontFamily: T.fontSerif, fontStyle: 'italic',
-          fontSize: 44, lineHeight: 1.02, color: T.ink,
-          fontWeight: 400, letterSpacing: '-0.02em',
-        }}>
+        <motion.div
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.25, duration: 0.7, ease: 'easeOut' }}
+          style={{
+            fontFamily: T.fontSerif, fontStyle: 'italic',
+            fontSize: 44, lineHeight: 1.02, color: T.ink,
+            fontWeight: 400, letterSpacing: '-0.02em',
+          }}
+        >
           Our&nbsp;World
-        </div>
+        </motion.div>
 
-        <div style={{
-          marginTop: 14, fontSize: 15, color: T.inkSoft,
-          letterSpacing: '0.01em', lineHeight: 1.6,
-        }}>
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.4, duration: 0.7, ease: 'easeOut' }}
+          style={{
+            marginTop: 14, fontSize: 15, color: T.inkSoft,
+            letterSpacing: '0.01em', lineHeight: 1.6,
+          }}
+        >
           A quiet place for the moments<br />that become your child's story.
-        </div>
+        </motion.div>
       </motion.div>
 
       <motion.div
         initial={{ opacity: 0 }}
         animate={{ opacity: 1 }}
-        transition={{ delay: 0.8, duration: 0.5 }}
+        transition={{ delay: 1.0, duration: 0.6 }}
         style={{ position: 'absolute', bottom: 64, left: 0, right: 0, textAlign: 'center' }}
       >
         <motion.button

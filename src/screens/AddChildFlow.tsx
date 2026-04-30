@@ -5,9 +5,13 @@ import Icon from '../components/Icon';
 import { useHaptics } from '../hooks/useHaptics';
 import type { Child } from '../types';
 
+export type ChildFlowMode = 'setup' | 'edit' | 'add';
+
 interface Props {
   onDone: (child: Child) => void;
   onBack: () => void;
+  mode?: ChildFlowMode;
+  initialChild?: Child;
 }
 
 const PALETTES = [
@@ -45,8 +49,7 @@ function validateDob(dob: { d: string; m: string; y: string }): string | null {
   if (d < 1 || d > 31) return 'Day must be between 1 and 31';
   if (y < 1900) return 'Year must be after 1900';
   const birth = new Date(y, m - 1, d);
-  if (birth > now) return 'Date of birth can\'t be in the future';
-  // Check days in month
+  if (birth > now) return "Date of birth can't be in the future";
   const daysInMonth = new Date(y, m, 0).getDate();
   if (d > daysInMonth) return `${MONTH_NAMES[m - 1]} only has ${daysInMonth} days`;
   return null;
@@ -76,14 +79,14 @@ function DobField({ label, value, onChange, placeholder }: {
   );
 }
 
-export default function AddChildFlow({ onDone, onBack }: Props) {
+export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialChild }: Props) {
   const { light, medium } = useHaptics();
   const [step, setStep] = useState(0);
-  const [name, setName] = useState('');
-  const [dob, setDob] = useState({ d: '', m: '', y: '' });
+  const [name, setName] = useState(initialChild?.name ?? '');
+  const [dob, setDob] = useState(initialChild?.dob ?? { d: '', m: '', y: '' });
   const [dobError, setDobError] = useState<string | null>(null);
-  const [pronouns, setPronouns] = useState('she / her');
-  const [colorIdx, setColorIdx] = useState(0);
+  const [pronouns, setPronouns] = useState(initialChild?.pronouns ?? 'she / her');
+  const [colorIdx, setColorIdx] = useState(initialChild?.colorIdx ?? 0);
   const total = 4;
 
   const dobFilled = dob.d && dob.m && dob.y;
@@ -100,11 +103,18 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
     }
     medium();
     if (step < total - 1) setStep(step + 1);
-    else onDone({ name: name || 'Mira', pronouns, colorIdx, dob });
+    else onDone({ name: name.trim() || 'Mira', pronouns, colorIdx, dob });
   };
   const prev = () => { light(); step > 0 ? setStep(step - 1) : onBack(); };
 
   const pal = PALETTES[colorIdx];
+
+  const ctaLabel = () => {
+    if (step < total - 1) return 'Continue';
+    if (mode === 'edit') return 'Save changes';
+    if (mode === 'add') return 'Add to world';
+    return 'Open their world';
+  };
 
   return (
     <div style={{
@@ -122,7 +132,7 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
         <div style={{
           fontSize: 12, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.inkMuted,
         }}>
-          Step {step + 1} of {total}
+          {mode === 'edit' ? 'Edit profile' : mode === 'add' ? 'New child' : `Step ${step + 1} of ${total}`}
         </div>
         <div style={{ width: 40 }} />
       </div>
@@ -305,7 +315,7 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
               fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase',
               color: T.inkMuted, marginBottom: 10,
             }}>
-              Everything ready
+              {mode === 'edit' ? 'Changes ready' : 'Everything ready'}
             </div>
             <div style={{ fontSize: 30, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 500 }}>
               <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>{name || 'Mira'}'s</em> world
@@ -314,7 +324,9 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
               fontSize: 14.5, color: T.inkSoft, marginTop: 12,
               maxWidth: 280, lineHeight: 1.55,
             }}>
-              {formatDobConfirm(dob)}. Let's begin with today.
+              {dob.d && dob.m && dob.y
+                ? formatDobConfirm(dob) + '. ' + (mode === 'edit' ? "Profile updated." : "Let's begin with today.")
+                : mode === 'edit' ? 'Your changes are ready to save.' : "Let's begin."}
             </div>
           </div>
         )}
@@ -337,7 +349,7 @@ export default function AddChildFlow({ onDone, onBack }: Props) {
             WebkitTapHighlightColor: 'transparent' as any,
           }}
         >
-          {step === 3 ? 'Open their world' : 'Continue'}
+          {ctaLabel()}
           {step < 3 && <Icon name="chevron" size={16} color={canProceed ? '#fff' : T.inkMuted} strokeWidth={2.2} />}
         </motion.button>
       </div>
