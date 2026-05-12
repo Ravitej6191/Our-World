@@ -95,7 +95,7 @@ async function syncToFirestore(store: ReturnType<typeof useStore.getState>, user
     await setDoc(doc(db, 'users', userId, 'settings', 'main'), store.settings);
     await Promise.all(
       store.memories
-        .filter((m) => !m.mediaUri?.startsWith('blob:'))
+        .filter((m) => !m.mediaUri?.startsWith('blob:') && !m.mediaUri?.startsWith('data:'))
         .map((m) => setDoc(doc(db, 'users', userId, 'memories', m.id), { ...m, _ts: Date.now() })),
     );
     await Promise.all(

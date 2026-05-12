@@ -137,11 +137,20 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
           </div>
         ) : memory.mediaUri ? (
           <div style={{ margin: '0 16px', borderRadius: 28, overflow: 'hidden', height: 440 }}>
-            <img
-              src={memory.mediaUri}
-              alt={memory.title}
-              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
-            />
+            {memory.media === 'video' ? (
+              <video
+                src={memory.mediaUri}
+                controls
+                playsInline
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            ) : (
+              <img
+                src={memory.mediaUri}
+                alt={memory.title}
+                style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+              />
+            )}
           </div>
         ) : (
           <PhotoPlaceholder

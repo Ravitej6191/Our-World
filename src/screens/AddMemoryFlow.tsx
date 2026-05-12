@@ -70,11 +70,16 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const uri = URL.createObjectURL(blob);
-        setAudioUri(uri);
-        setRecorded(true);
         const dur = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-        onRecorded(uri, dur);
+        // Convert to base64 data URL so it survives page refresh
+        const reader = new FileReader();
+        reader.onloadend = () => {
+          const dataUri = reader.result as string;
+          setAudioUri(dataUri);
+          setRecorded(true);
+          onRecorded(dataUri, dur);
+        };
+        reader.readAsDataURL(blob);
       };
       mr.start();
       mediaRef.current = mr;
@@ -117,7 +122,6 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const reRecord = () => {
     light();
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
-    if (audioUri) URL.revokeObjectURL(audioUri);
     setAudioUri(null);
     setRecorded(false);
     setSeconds(0);
@@ -227,6 +231,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
   const [milestoneId, setMilestoneId] = useState<string | null>(defaultMilestoneId ?? null);
   const [emotion, setEmotion] = useState<EmotionKind | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const videoInputRef = useRef<HTMLInputElement | null>(null);
   const { light, medium, success } = useHaptics();
 
   const capturePhoto = async () => {
@@ -240,6 +245,19 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
     } catch {
       // User cancelled or permission denied
     }
+  };
+
+  const captureVideo = () => {
+    videoInputRef.current?.click();
+  };
+
+  const handleVideoFile = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onloadend = () => setMediaUri(reader.result as string);
+    reader.readAsDataURL(file);
+    e.target.value = '';
   };
 
   const hasContent = title.trim().length > 0 || note.trim().length > 0 || emotion !== null;
@@ -372,23 +390,45 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
             </div>
 
             <div style={{ padding: '0 20px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
+              {/* Hidden video file input — triggers native camera on mobile */}
+              <input
+                ref={videoInputRef}
+                type="file"
+                accept="video/*"
+                capture="environment"
+                onChange={handleVideoFile}
+                style={{ display: 'none' }}
+              />
+
               {/* Media area */}
               {(media === 'photo' || media === 'video') && (
                 <motion.div
                   whileTap={{ scale: 0.99 }}
-                  onClick={capturePhoto}
+                  onClick={media === 'photo' ? capturePhoto : captureVideo}
                   style={{ position: 'relative', cursor: 'pointer', borderRadius: 20, overflow: 'hidden' }}
                 >
                   {mediaUri ? (
                     <div style={{ position: 'relative' }}>
-                      <img
-                        src={mediaUri}
-                        alt="captured"
-                        style={{
-                          width: '100%', height: 240, objectFit: 'cover',
-                          borderRadius: 20, display: 'block',
-                        }}
-                      />
+                      {media === 'video' ? (
+                        <video
+                          src={mediaUri}
+                          controls
+                          playsInline
+                          style={{
+                            width: '100%', height: 240, objectFit: 'cover',
+                            borderRadius: 20, display: 'block',
+                          }}
+                        />
+                      ) : (
+                        <img
+                          src={mediaUri}
+                          alt="captured"
+                          style={{
+                            width: '100%', height: 240, objectFit: 'cover',
+                            borderRadius: 20, display: 'block',
+                          }}
+                        />
+                      )}
                       <div style={{
                         position: 'absolute', top: 10, right: 10,
                         background: 'rgba(0,0,0,0.5)', borderRadius: 20,
@@ -410,7 +450,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                       background: 'rgba(255,255,255,0.85)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Icon name="camera" size={22} color={T.ink} />
+                      <Icon name={media === 'video' ? 'video' : 'camera'} size={22} color={T.ink} />
                     </div>
                   )}
                 </motion.div>
