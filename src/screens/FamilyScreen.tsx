@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React from 'react';
 import { motion } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
@@ -66,7 +66,6 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
   const members = useStore((s) => s.members);
   const child = useStore((s) => s.child);
   const { object } = getPronouns(child.pronouns);
-  const [privacyMode, setPrivacyMode] = useState<'just' | 'shared'>('just');
 
   return (
     <motion.div
@@ -106,33 +105,6 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
           </div>
         </div>
 
-        {/* Privacy pill switcher */}
-        <div style={{
-          display: 'flex', background: T.lineSoft,
-          borderRadius: 14, padding: 3,
-          marginBottom: 24,
-          width: 'fit-content',
-        }}>
-          {(['just', 'shared'] as const).map((mode) => (
-            <motion.button
-              key={mode}
-              whileTap={{ scale: 0.95 }}
-              onClick={() => { light(); setPrivacyMode(mode); }}
-              style={{
-                padding: '8px 18px', borderRadius: 11, border: 'none', cursor: 'pointer',
-                fontSize: 13, fontWeight: 500, fontFamily: T.fontSans,
-                background: privacyMode === mode ? T.card : 'transparent',
-                color: privacyMode === mode ? T.ink : T.inkMuted,
-                boxShadow: privacyMode === mode ? '0 1px 3px rgba(58,50,69,0.08)' : 'none',
-                transition: 'all 0.15s ease',
-                WebkitTapHighlightColor: 'transparent' as any,
-                whiteSpace: 'nowrap',
-              }}
-            >
-              {mode === 'just' ? 'Just me' : 'Shared'}
-            </motion.button>
-          ))}
-        </div>
       </div>
 
       {/* Scrollable list */}
@@ -141,22 +113,13 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       } as any}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {(privacyMode === 'shared' ? members : []).map((member) => (
+          {members.map((member) => (
             <MemberRow
               key={member.id}
               member={member}
               onOpen={() => onOpenMember(member.id)}
             />
           ))}
-          {privacyMode === 'just' && (
-            <div style={{
-              textAlign: 'center', padding: '32px 20px',
-              fontSize: 14, color: T.inkFaint, lineHeight: 1.55,
-            }}>
-              Only you can see this world.<br />
-              Switch to <strong style={{ color: T.inkMuted }}>Shared</strong> to see who has access.
-            </div>
-          )}
 
           {/* Invite row */}
           <motion.button

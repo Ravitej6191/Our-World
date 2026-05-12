@@ -1,17 +1,39 @@
-import React, { useEffect } from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { signInWithPopup } from 'firebase/auth';
+import { auth, googleProvider } from '../firebase';
 import { T } from '../tokens';
 import { useHaptics } from '../hooks/useHaptics';
 
-interface Props { onContinue: () => void; }
+interface Props {
+  isAuthed: boolean;
+  onContinue: () => void;
+}
 
-export default function SplashScreen({ onContinue }: Props) {
+export default function SplashScreen({ isAuthed, onContinue }: Props) {
   const { medium } = useHaptics();
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState(false);
 
+  // Auto-advance for already-authenticated users
   useEffect(() => {
-    const t = setTimeout(() => onContinue(), 2400);
+    if (!isAuthed) return;
+    const t = setTimeout(onContinue, 1600);
     return () => clearTimeout(t);
-  }, [onContinue]);
+  }, [isAuthed, onContinue]);
+
+  const handleGoogle = async () => {
+    medium();
+    setLoading(true);
+    setError(false);
+    try {
+      await signInWithPopup(auth, googleProvider);
+      // onAuthStateChanged in App.tsx will set isAuthed → triggers auto-advance above
+    } catch (e: any) {
+      if (e?.code !== 'auth/popup-closed-by-user') setError(true);
+      setLoading(false);
+    }
+  };
 
   return (
     <div style={{
@@ -30,13 +52,18 @@ export default function SplashScreen({ onContinue }: Props) {
         borderRadius: '50%', background: 'rgba(240,204,200,0.4)', filter: 'blur(28px)',
       }} />
 
+      {/* Logo — shifted above center */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
         transition={{ duration: 0.8, ease: [0.22, 1, 0.36, 1] }}
-        style={{ position: 'relative', zIndex: 2, textAlign: 'center', padding: '0 40px', marginTop: -40 }}
+        style={{
+          position: 'relative', zIndex: 2,
+          textAlign: 'center', padding: '0 40px',
+          marginTop: isAuthed ? -60 : -100,
+          transition: 'margin-top 0.6s ease',
+        }}
       >
-        {/* Logo mark */}
         <motion.div
           initial={{ opacity: 0, y: 10 }}
           animate={{ opacity: 1, y: 0 }}
@@ -86,26 +113,73 @@ export default function SplashScreen({ onContinue }: Props) {
         </motion.div>
       </motion.div>
 
-      <motion.div
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 1.0, duration: 0.6 }}
-        style={{ position: 'absolute', bottom: 64, left: 0, right: 0, textAlign: 'center' }}
-      >
-        <motion.button
-          whileTap={{ scale: 0.93 }}
-          onClick={() => { medium(); onContinue(); }}
-          style={{
-            background: 'none', border: 'none', cursor: 'pointer',
-            fontSize: 13, color: T.inkMuted, letterSpacing: '0.18em',
-            textTransform: 'uppercase', fontFamily: T.fontSans,
-            WebkitTapHighlightColor: 'transparent',
-            padding: '12px 24px',
-          }}
-        >
-          Begin
-        </motion.button>
-      </motion.div>
+      {/* Google sign-in — only shown when not authenticated */}
+      <AnimatePresence>
+        {!isAuthed && (
+          <motion.div
+            initial={{ opacity: 0, y: 16 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 8 }}
+            transition={{ delay: 0.75, duration: 0.5, ease: 'easeOut' }}
+            style={{
+              position: 'absolute', bottom: 60, left: 24, right: 24,
+              display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 14,
+              zIndex: 2,
+            }}
+          >
+            <motion.button
+              whileTap={!loading ? { scale: 0.96 } : {}}
+              onClick={handleGoogle}
+              disabled={loading}
+              style={{
+                width: '100%', maxWidth: 340, height: 54, borderRadius: 18,
+                background: '#fff',
+                border: `1.5px solid ${T.line}`,
+                cursor: loading ? 'default' : 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
+                boxShadow: '0 2px 16px rgba(58,50,69,0.08)',
+                fontFamily: T.fontSans, fontSize: 15, fontWeight: 500, color: T.ink,
+                WebkitTapHighlightColor: 'transparent' as any,
+              }}
+            >
+              {loading ? (
+                <motion.div
+                  animate={{ rotate: 360 }}
+                  transition={{ repeat: Infinity, duration: 0.85, ease: 'linear' }}
+                  style={{
+                    width: 20, height: 20, borderRadius: 10,
+                    border: '2px solid rgba(58,50,69,0.15)',
+                    borderTopColor: T.lavenderDeep,
+                  }}
+                />
+              ) : (
+                <>
+                  <svg width="20" height="20" viewBox="0 0 18 18">
+                    <path fill="#4285F4" d="M17.64 9.2c0-.637-.057-1.251-.164-1.84H9v3.481h4.844c-.209 1.125-.843 2.078-1.796 2.717v2.258h2.908c1.702-1.567 2.684-3.875 2.684-6.615z"/>
+                    <path fill="#34A853" d="M9 18c2.43 0 4.467-.806 5.956-2.184l-2.908-2.258c-.806.54-1.837.859-3.048.859-2.344 0-4.328-1.584-5.036-3.711H.957v2.332A8.997 8.997 0 0 0 9 18z"/>
+                    <path fill="#FBBC05" d="M3.964 10.706A5.41 5.41 0 0 1 3.682 9c0-.593.102-1.17.282-1.706V4.962H.957A8.996 8.996 0 0 0 0 9c0 1.452.348 2.827.957 4.038l3.007-2.332z"/>
+                    <path fill="#EA4335" d="M9 3.58c1.321 0 2.508.454 3.44 1.345l2.582-2.58C13.463.891 11.426 0 9 0A8.997 8.997 0 0 0 .957 4.962L3.964 7.294C4.672 5.163 6.656 3.58 9 3.58z"/>
+                  </svg>
+                  Continue with Google
+                </>
+              )}
+            </motion.button>
+
+            <AnimatePresence>
+              {error && (
+                <motion.div
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  style={{ fontSize: 13, color: T.blushDeep, textAlign: 'center' }}
+                >
+                  Sign-in failed. Please try again.
+                </motion.div>
+              )}
+            </AnimatePresence>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   );
 }

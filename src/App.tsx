@@ -23,7 +23,6 @@ import MemberDetailScreen from './screens/MemberDetailScreen';
 import InviteFlow from './screens/InviteFlow';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import AuthScreen from './screens/AuthScreen';
 import TabBar from './components/TabBar';
 import Toast from './components/Toast';
 import type { ChildFlowMode } from './screens/AddChildFlow';
@@ -254,10 +253,6 @@ export default function App() {
     );
   }
 
-  if (!isAuthed) {
-    return <AuthScreen onAuth={() => setIsAuthed(true)} />;
-  }
-
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#faf8f7' }}>
       <AnimatePresence mode="wait" custom={dir}>
@@ -272,7 +267,7 @@ export default function App() {
           style={{ position: 'absolute', inset: 0 }}
         >
           {screen === 'splash' && (
-            <SplashScreen onContinue={handleSplashContinue} />
+            <SplashScreen isAuthed={isAuthed} onContinue={handleSplashContinue} />
           )}
 
           {screen === 'onboarding' && (
