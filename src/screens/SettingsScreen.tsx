@@ -1,5 +1,7 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import Toggle from '../components/Toggle';
@@ -51,7 +53,35 @@ function Divider() {
 
 export default function SettingsScreen({ onBack }: Props) {
   const { light } = useHaptics();
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, memories, showToast } = useStore();
+
+  const handleExport = () => {
+    const data = JSON.stringify(memories, null, 2);
+    const blob = new Blob([data], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `ourworld-memories-${new Date().toISOString().slice(0, 10)}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    showToast({ text: `${memories.length} memories exported`, variant: 'success' });
+  };
+
+  const handleClearCache = () => {
+    if (!window.confirm('This will clear all local data and reload. Your cloud data will be safe. Continue?')) return;
+    localStorage.clear();
+    window.location.reload();
+  };
+
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch {
+      showToast({ text: 'Could not sign out. Try again.', variant: 'error' });
+    }
+  };
 
   return (
     <div style={{
@@ -138,14 +168,15 @@ export default function SettingsScreen({ onBack }: Props) {
           <SettingsRow
             icon="download"
             label="Export all memories"
-            sub="Download a zip of your archive"
-            onPress={() => {}}
+            sub={`${memories.length} memories as JSON`}
+            onPress={handleExport}
           />
           <Divider />
           <SettingsRow
             icon="trash"
             label="Clear local cache"
-            onPress={() => {}}
+            sub="Reset app data locally"
+            onPress={handleClearCache}
           />
         </div>
 
@@ -158,11 +189,27 @@ export default function SettingsScreen({ onBack }: Props) {
           background: T.card, borderRadius: 18, border: `1px solid ${T.lineSoft}`,
           overflow: 'hidden', marginBottom: 20,
         }}>
-          <SettingsRow icon="info" label="Privacy policy" onPress={() => {}} />
+          <SettingsRow icon="info" label="Privacy policy" onPress={() => window.open('https://ourworld.app/privacy', '_blank')} />
           <Divider />
-          <SettingsRow icon="info" label="Terms of service" onPress={() => {}} />
+          <SettingsRow icon="info" label="Terms of service" onPress={() => window.open('https://ourworld.app/terms', '_blank')} />
           <Divider />
-          <SettingsRow icon="info" label="Licences" onPress={() => {}} />
+          <SettingsRow icon="info" label="Licences" onPress={() => window.open('https://ourworld.app/licences', '_blank')} />
+        </div>
+
+        {/* Account */}
+        <div style={{
+          fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
+          color: T.inkMuted, marginBottom: 10, paddingLeft: 4,
+        }}>Account</div>
+        <div style={{
+          background: T.card, borderRadius: 18, border: `1px solid ${T.lineSoft}`,
+          overflow: 'hidden', marginBottom: 20,
+        }}>
+          <SettingsRow
+            icon="logout"
+            label="Sign out"
+            onPress={handleSignOut}
+          />
         </div>
 
         <div style={{ textAlign: 'center', paddingTop: 4 }}>

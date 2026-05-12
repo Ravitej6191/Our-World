@@ -1,7 +1,7 @@
 import { create } from 'zustand';
 import { persist } from 'zustand/middleware';
 import type { Memory, Child, FamilyMember, ToastState, Milestone } from '../types';
-import { SAMPLE_MEMORIES, SAMPLE_MEMBERS, MILESTONES } from '../data';
+import { MILESTONES } from '../data';
 import type { EmotionKind } from '../tokens';
 
 export interface AppSettings {
@@ -43,11 +43,11 @@ export const useStore = create<AppState>()(
   persist(
     (set) => ({
       onboardingDone: false,
-      child: { name: 'Mira', pronouns: 'she / her', colorIdx: 0 },
+      child: { name: '', pronouns: 'she / her', colorIdx: 0 },
       children: [],
       activeChildIdx: 0,
-      memories: SAMPLE_MEMORIES,
-      members: SAMPLE_MEMBERS,
+      memories: [],
+      members: [],
       milestones: MILESTONES,
       toast: null,
       settings: { faceId: false, privateMode: false, autoSave: true },

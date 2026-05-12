@@ -1,6 +1,8 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { App as CapApp } from '@capacitor/app';
+import { onAuthStateChanged } from 'firebase/auth';
+import { auth } from './firebase';
 import { useStore } from './store';
 import type { TabId } from './types';
 import { useFirestoreSync } from './hooks/useFirestore';
@@ -21,6 +23,7 @@ import MemberDetailScreen from './screens/MemberDetailScreen';
 import InviteFlow from './screens/InviteFlow';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import AuthScreen from './screens/AuthScreen';
 import TabBar from './components/TabBar';
 import Toast from './components/Toast';
 import type { ChildFlowMode } from './screens/AddChildFlow';
@@ -89,10 +92,31 @@ function todayShort() {
 
 export default function App() {
   const {
-    child, children, memories, milestones, toast, onboardingDone,
+    child, children, memories, milestones, toast, onboardingDone, settings,
     setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
     addMember, removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
   } = useStore();
+
+  const [authReady, setAuthReady] = useState(false);
+  const [isAuthed, setIsAuthed] = useState(false);
+  const [appHidden, setAppHidden] = useState(false);
+
+  // Firebase auth state listener
+  useEffect(() => {
+    const unsub = onAuthStateChanged(auth, (user) => {
+      setIsAuthed(!!user);
+      setAuthReady(true);
+    });
+    return unsub;
+  }, []);
+
+  // Private mode: blur when app is hidden/backgrounded
+  useEffect(() => {
+    if (!settings.privateMode) { setAppHidden(false); return; }
+    const handleVisibility = () => setAppHidden(document.hidden);
+    document.addEventListener('visibilitychange', handleVisibility);
+    return () => document.removeEventListener('visibilitychange', handleVisibility);
+  }, [settings.privateMode]);
 
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
@@ -144,6 +168,7 @@ export default function App() {
   const handleSaveMemory = (m: {
     media: string; title: string; note: string;
     emotion: any; isMilestone: boolean; milestoneId?: string;
+    mediaUri?: string; duration?: string;
   }) => {
     const id = `m${Date.now()}`;
     const milestone = milestones.find(ml => ml.id === m.milestoneId);
@@ -163,6 +188,8 @@ export default function App() {
       milestone: m.isMilestone && !!m.milestoneId,
       milestoneLabel: milestone?.label,
       milestoneId: m.milestoneId,
+      mediaUri: m.mediaUri,
+      duration: m.duration,
     });
 
     if (m.isMilestone && m.milestoneId) {
@@ -217,6 +244,19 @@ export default function App() {
   const isModal = screen === 'addMemory' || screen === 'invite';
   const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || isModal;
   const transition = { type: 'tween', ease: [0.32, 0, 0.16, 1], duration: 0.32 } as const;
+
+  if (!authReady) {
+    return (
+      <div style={{
+        position: 'fixed', inset: 0, background: '#faf8f7',
+        display: 'flex', alignItems: 'center', justifyContent: 'center',
+      }} />
+    );
+  }
+
+  if (!isAuthed) {
+    return <AuthScreen onAuth={() => setIsAuthed(true)} />;
+  }
 
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#faf8f7' }}>
@@ -387,6 +427,22 @@ export default function App() {
       )}
 
       {toast && <Toast toast={toast} onDone={clearToast} />}
+
+      {/* Private mode blur overlay */}
+      <AnimatePresence>
+        {settings.privateMode && appHidden && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 999,
+              backdropFilter: 'blur(24px)',
+              background: 'rgba(250,248,247,0.85)',
+            }}
+          />
+        )}
+      </AnimatePresence>
     </div>
   );
 }

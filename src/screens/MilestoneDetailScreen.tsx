@@ -63,7 +63,21 @@ export default function MilestoneDetailScreen({ milestone, memories, onBack, onA
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
           <Icon name="back" size={20} color={T.ink} />
         </motion.button>
-        <motion.button whileTap={{ scale: 0.9 }} style={chromeBtn}>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          style={chromeBtn}
+          onClick={async () => {
+            light();
+            try {
+              if (navigator.share) {
+                await navigator.share({
+                  title: milestone.label,
+                  text: `${milestone.label} — captured in Our World`,
+                });
+              }
+            } catch { /* cancelled */ }
+          }}
+        >
           <Icon name="share" size={18} color={T.ink} />
         </motion.button>
       </div>
@@ -137,52 +151,69 @@ export default function MilestoneDetailScreen({ milestone, memories, onBack, onA
           {contextCopy}
         </div>
 
-        {/* Memories linked card — real count */}
+        {/* Memories linked to this milestone */}
         {milestone.done && (
-          <motion.button
-            whileTap={linkedMemories.length > 0 ? { scale: 0.98 } : {}}
-            onClick={() => {
-              if (linkedMemories.length > 0 && onOpenMemory) {
-                light();
-                onOpenMemory(linkedMemories[0].id);
-              }
-            }}
-            style={{
-              background: T.card, borderRadius: 18,
-              padding: '16px 18px',
-              boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-              display: 'flex', alignItems: 'center', gap: 14,
-              border: 'none', cursor: linkedMemories.length > 0 ? 'pointer' : 'default',
-              width: '100%', textAlign: 'left',
-              WebkitTapHighlightColor: 'transparent' as any,
-            }}
-          >
+          <div style={{
+            background: T.card, borderRadius: 18,
+            boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
+            overflow: 'hidden',
+          }}>
             <div style={{
-              width: 42, height: 42, borderRadius: 14,
-              background: '#fde0e4',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-              flexShrink: 0,
+              display: 'flex', alignItems: 'center', gap: 14,
+              padding: '16px 18px',
+              borderBottom: linkedMemories.length > 0 ? `1px solid ${T.lineSoft}` : 'none',
             }}>
-              <Icon name="heart" size={20} color={T.blushDeep} />
-            </div>
-            <div style={{ flex: 1 }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: T.ink, marginBottom: 2 }}>
-                {linkedMemories.length === 0
-                  ? 'No memories linked yet'
-                  : `${linkedMemories.length} ${linkedMemories.length === 1 ? 'memory' : 'memories'} linked`
-                }
+              <div style={{
+                width: 42, height: 42, borderRadius: 14,
+                background: '#fde0e4',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                flexShrink: 0,
+              }}>
+                <Icon name="heart" size={20} color={T.blushDeep} />
               </div>
-              <div style={{ fontSize: 13, color: T.inkMuted }}>
-                {linkedMemories.length === 0
-                  ? 'Capture this moment below'
-                  : 'Tap to open'
-                }
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 15, fontWeight: 600, color: T.ink, marginBottom: 2 }}>
+                  {linkedMemories.length === 0
+                    ? 'No memories linked yet'
+                    : `${linkedMemories.length} ${linkedMemories.length === 1 ? 'memory' : 'memories'} linked`
+                  }
+                </div>
+                <div style={{ fontSize: 13, color: T.inkMuted }}>
+                  {linkedMemories.length === 0 ? 'Capture this moment below' : 'Tap to open'}
+                </div>
               </div>
             </div>
-            {linkedMemories.length > 0 && (
-              <Icon name="chevron" size={16} color={T.inkFaint} />
-            )}
-          </motion.button>
+
+            {linkedMemories.map((mem, i) => (
+              <motion.button
+                key={mem.id}
+                whileTap={{ scale: 0.98 }}
+                onClick={() => { light(); onOpenMemory?.(mem.id); }}
+                style={{
+                  width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                  padding: '14px 18px',
+                  background: 'none', border: 'none', cursor: 'pointer',
+                  borderTop: i > 0 ? `1px solid ${T.lineSoft}` : 'none',
+                  textAlign: 'left',
+                  WebkitTapHighlightColor: 'transparent' as any,
+                }}
+              >
+                <div style={{
+                  width: 36, height: 36, borderRadius: 10,
+                  background: `linear-gradient(135deg, var(--tone-a, #ede5f8), var(--tone-b, #d8cef0))`,
+                  flexShrink: 0,
+                }} />
+                <div style={{ flex: 1, minWidth: 0 }}>
+                  <div style={{
+                    fontSize: 14, fontWeight: 500, color: T.ink,
+                    whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis',
+                  }}>{mem.title}</div>
+                  <div style={{ fontSize: 12, color: T.inkMuted }}>{mem.dateShort ?? mem.date}</div>
+                </div>
+                <Icon name="chevron" size={14} color={T.inkFaint} />
+              </motion.button>
+            ))}
+          </div>
         )}
 
         {/* CTA */}

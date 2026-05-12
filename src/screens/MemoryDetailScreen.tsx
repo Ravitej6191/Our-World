@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { T, EMOTIONS } from '../tokens';
 import type { EmotionKind } from '../tokens';
@@ -33,6 +33,24 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
   const [editTitle, setEditTitle] = useState('');
   const [editNote, setEditNote] = useState('');
   const [editEmotion, setEditEmotion] = useState<EmotionKind>('joy');
+  const [voicePlaying, setVoicePlaying] = useState(false);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const toggleVoice = () => {
+    if (!memory?.mediaUri) return;
+    light();
+    if (!audioRef.current) {
+      audioRef.current = new Audio(memory.mediaUri);
+      audioRef.current.onended = () => setVoicePlaying(false);
+    }
+    if (voicePlaying) {
+      audioRef.current.pause();
+      setVoicePlaying(false);
+    } else {
+      audioRef.current.play();
+      setVoicePlaying(true);
+    }
+  };
 
   if (!memory) {
     return (
@@ -94,13 +112,36 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
             display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', gap: 16,
           }}>
-            <VoiceWaveform bars={36} height={60} color="rgba(139,111,199,0.6)" />
+            <VoiceWaveform bars={36} height={60} color={voicePlaying ? T.lavenderDeep : 'rgba(139,111,199,0.6)'} />
             {memory.duration && (
               <span style={{
                 fontFamily: T.fontMono, fontSize: 14, color: T.lavenderDeep,
                 letterSpacing: '0.08em', fontWeight: 500,
               }}>{memory.duration}</span>
             )}
+            {memory.mediaUri && (
+              <motion.button
+                whileTap={{ scale: 0.92 }}
+                onClick={toggleVoice}
+                style={{
+                  width: 52, height: 52, borderRadius: 26,
+                  background: 'rgba(255,255,255,0.85)',
+                  border: 'none', cursor: 'pointer',
+                  display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  WebkitTapHighlightColor: 'transparent' as any,
+                }}
+              >
+                <Icon name={voicePlaying ? 'pause' : 'play'} size={22} color={T.lavenderDeep} />
+              </motion.button>
+            )}
+          </div>
+        ) : memory.mediaUri ? (
+          <div style={{ margin: '0 16px', borderRadius: 28, overflow: 'hidden', height: 440 }}>
+            <img
+              src={memory.mediaUri}
+              alt={memory.title}
+              style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+            />
           </div>
         ) : (
           <PhotoPlaceholder

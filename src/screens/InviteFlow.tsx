@@ -68,9 +68,18 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
   const [canAdd, setCanAdd] = useState(false);
   const [notifyNew, setNotifyNew] = useState(true);
 
-  const handleSend = () => {
+  const handleSend = async () => {
     success();
     setStep('sent');
+    const shareUrl = `https://ourworld.app/invite/${Math.random().toString(36).slice(2, 9)}`;
+    const shareText = `${name || 'Someone'} has invited you to view a special world on Our World. Tap the link to join.`;
+    try {
+      if (navigator.share) {
+        await navigator.share({ title: 'Join Our World', text: shareText, url: shareUrl });
+      }
+    } catch {
+      // User cancelled or share not available — that's fine
+    }
     setTimeout(() => { onInvited({ name, role: role?.label ?? '' }); }, 3000);
   };
 
@@ -364,11 +373,27 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
             <div style={{ fontSize: 15, color: T.inkMuted, textAlign: 'center', lineHeight: 1.5, marginBottom: 28 }}>
               {name || 'They'} will get a private link to join the world.
             </div>
-            <div style={{
-              background: T.card, borderRadius: 16, padding: '14px 18px', width: '100%',
-              boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-              display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28,
-            }}>
+            <motion.button
+              whileTap={{ scale: 0.97 }}
+              onClick={async () => {
+                light();
+                const shareUrl = `https://ourworld.app/invite/join`;
+                try {
+                  if (navigator.share) {
+                    await navigator.share({ title: 'Join Our World', url: shareUrl });
+                  } else {
+                    await navigator.clipboard.writeText(shareUrl);
+                  }
+                } catch { /* cancelled */ }
+              }}
+              style={{
+                background: T.card, borderRadius: 16, padding: '14px 18px', width: '100%',
+                boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
+                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28,
+                border: `1px solid ${T.lineSoft}`, cursor: 'pointer', textAlign: 'left',
+                WebkitTapHighlightColor: 'transparent' as any,
+              }}
+            >
               <div style={{
                 width: 36, height: 36, borderRadius: 10, background: T.bgCool,
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
@@ -376,11 +401,11 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                 <Icon name="link" size={16} color={T.lavenderDeep} />
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 2 }}>Private link</div>
-                <div style={{ fontFamily: T.fontMono, fontSize: 13, color: T.ink, letterSpacing: '0.02em' }}>our.world/m-7f3a</div>
+                <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 2 }}>Private link · tap to share</div>
+                <div style={{ fontFamily: T.fontMono, fontSize: 13, color: T.ink, letterSpacing: '0.02em' }}>ourworld.app/invite</div>
               </div>
-              <Icon name="share" size={16} color={T.inkMuted} />
-            </div>
+              <Icon name="share" size={16} color={T.lavenderDeep} />
+            </motion.button>
             <motion.button
               whileTap={{ scale: 0.97 }}
               onClick={() => { light(); onClose(); }}

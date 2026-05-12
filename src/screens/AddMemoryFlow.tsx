@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { T, EMOTIONS, type EmotionKind } from '../tokens';
 import Icon from '../components/Icon';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
@@ -20,6 +21,8 @@ interface Props {
     emotion: EmotionKind;
     milestoneId?: string;
     isMilestone: boolean;
+    mediaUri?: string;
+    duration?: string;
   }) => void;
 }
 
@@ -42,24 +45,89 @@ const MEDIA_OPTIONS: { type: MediaType; icon: string; label: string; sub: string
 
 const EMOTIONS_LIST = Object.entries(EMOTIONS) as [EmotionKind, typeof EMOTIONS[EmotionKind]][];
 
-function VoiceRecorder() {
+interface VoiceRecorderProps {
+  onRecorded: (uri: string, duration: string) => void;
+}
+
+function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const [recording, setRecording] = useState(false);
+  const [recorded, setRecorded] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const [audioUri, setAudioUri] = useState<string | null>(null);
+  const [playing, setPlaying] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const mediaRef = useRef<MediaRecorder | null>(null);
+  const chunksRef = useRef<Blob[]>([]);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
   const { light } = useHaptics();
 
-  const toggle = () => {
-    light();
-    if (recording) {
-      setRecording(false);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    } else {
+  const startRecording = async () => {
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+      const mr = new MediaRecorder(stream);
+      chunksRef.current = [];
+      mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
+      mr.onstop = () => {
+        stream.getTracks().forEach((t) => t.stop());
+        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
+        const uri = URL.createObjectURL(blob);
+        setAudioUri(uri);
+        setRecorded(true);
+        const dur = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+        onRecorded(uri, dur);
+      };
+      mr.start();
+      mediaRef.current = mr;
       setRecording(true);
       intervalRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+    } catch {
+      // Microphone permission denied or not available
     }
   };
 
-  useEffect(() => () => { if (intervalRef.current) clearInterval(intervalRef.current); }, []);
+  const stopRecording = () => {
+    mediaRef.current?.stop();
+    mediaRef.current = null;
+    setRecording(false);
+    if (intervalRef.current) clearInterval(intervalRef.current);
+  };
+
+  const toggle = () => {
+    light();
+    if (recording) stopRecording();
+    else if (!recorded) startRecording();
+  };
+
+  const togglePlay = () => {
+    if (!audioUri) return;
+    light();
+    if (!audioRef.current) {
+      audioRef.current = new Audio(audioUri);
+      audioRef.current.onended = () => setPlaying(false);
+    }
+    if (playing) {
+      audioRef.current.pause();
+      setPlaying(false);
+    } else {
+      audioRef.current.play();
+      setPlaying(true);
+    }
+  };
+
+  const reRecord = () => {
+    light();
+    if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
+    if (audioUri) URL.revokeObjectURL(audioUri);
+    setAudioUri(null);
+    setRecorded(false);
+    setSeconds(0);
+    setPlaying(false);
+  };
+
+  useEffect(() => () => {
+    if (intervalRef.current) clearInterval(intervalRef.current);
+    if (audioRef.current) audioRef.current.pause();
+  }, []);
 
   const mm = String(Math.floor(seconds / 60)).padStart(2, '0');
   const ss = String(seconds % 60).padStart(2, '0');
@@ -70,29 +138,62 @@ function VoiceRecorder() {
       padding: '28px 24px', display: 'flex', flexDirection: 'column',
       alignItems: 'center', gap: 20,
     }}>
-      <VoiceWaveform bars={32} height={56} color={recording ? T.lavenderDeep : 'rgba(139,111,199,0.35)'} />
+      <VoiceWaveform bars={32} height={56} color={recording ? T.lavenderDeep : (recorded ? T.lavenderDeep : 'rgba(139,111,199,0.35)')} />
       <div style={{
         fontFamily: T.fontMono, fontSize: 28, color: T.ink,
         letterSpacing: '0.05em', fontWeight: 400,
       }}>{mm}:{ss}</div>
-      <motion.button
-        onClick={toggle}
-        whileTap={{ scale: 0.92 }}
-        style={{
-          width: 64, height: 64, borderRadius: 32,
-          background: recording
-            ? 'linear-gradient(135deg, #d4736a, #c05a52)'
-            : 'linear-gradient(135deg, #8b6fc7, #7a5db8)',
-          border: 'none', cursor: 'pointer',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-          boxShadow: recording
-            ? '0 6px 20px rgba(212,115,106,0.4)'
-            : '0 6px 20px rgba(139,111,199,0.4)',
-          WebkitTapHighlightColor: 'transparent' as any,
-        }}
-      >
-        <Icon name={recording ? 'pause' : 'mic'} size={26} color="#fff" strokeWidth={2} />
-      </motion.button>
+      <div style={{ display: 'flex', gap: 16, alignItems: 'center' }}>
+        {recorded ? (
+          <>
+            <motion.button
+              onClick={reRecord}
+              whileTap={{ scale: 0.92 }}
+              style={{
+                width: 44, height: 44, borderRadius: 22,
+                background: T.card, border: `1px solid ${T.line}`,
+                cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                WebkitTapHighlightColor: 'transparent' as any,
+              }}
+            >
+              <Icon name="close" size={16} color={T.inkSoft} />
+            </motion.button>
+            <motion.button
+              onClick={togglePlay}
+              whileTap={{ scale: 0.92 }}
+              style={{
+                width: 64, height: 64, borderRadius: 32,
+                background: 'linear-gradient(135deg, #8b6fc7, #7a5db8)',
+                border: 'none', cursor: 'pointer',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                boxShadow: '0 6px 20px rgba(139,111,199,0.4)',
+                WebkitTapHighlightColor: 'transparent' as any,
+              }}
+            >
+              <Icon name={playing ? 'pause' : 'play'} size={26} color="#fff" strokeWidth={2} />
+            </motion.button>
+          </>
+        ) : (
+          <motion.button
+            onClick={toggle}
+            whileTap={{ scale: 0.92 }}
+            style={{
+              width: 64, height: 64, borderRadius: 32,
+              background: recording
+                ? 'linear-gradient(135deg, #d4736a, #c05a52)'
+                : 'linear-gradient(135deg, #8b6fc7, #7a5db8)',
+              border: 'none', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+              boxShadow: recording
+                ? '0 6px 20px rgba(212,115,106,0.4)'
+                : '0 6px 20px rgba(139,111,199,0.4)',
+              WebkitTapHighlightColor: 'transparent' as any,
+            }}
+          >
+            <Icon name={recording ? 'stop' : 'mic'} size={26} color="#fff" strokeWidth={2} />
+          </motion.button>
+        )}
+      </div>
       {recording && (
         <motion.div
           animate={{ opacity: [1, 0.4, 1] }}
@@ -102,6 +203,11 @@ function VoiceRecorder() {
             color: T.blushDeep, fontWeight: 500,
           }}
         >Recording…</motion.div>
+      )}
+      {recorded && !recording && (
+        <div style={{ fontSize: 12, color: T.lavenderDeep, fontWeight: 500 }}>
+          Tap play to preview
+        </div>
       )}
     </div>
   );
@@ -113,6 +219,8 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
   const { possessive } = getPronouns(child.pronouns);
   const [step, setStep] = useState<Step>('pick');
   const [media, setMedia] = useState<MediaType>('photo');
+  const [mediaUri, setMediaUri] = useState<string | undefined>(undefined);
+  const [voiceDuration, setVoiceDuration] = useState<string | undefined>(undefined);
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
   const [isMilestone, setIsMilestone] = useState(!!defaultMilestoneId);
@@ -120,6 +228,19 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
   const [emotion, setEmotion] = useState<EmotionKind | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
   const { light, medium, success } = useHaptics();
+
+  const capturePhoto = async () => {
+    try {
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt,
+        quality: 85,
+      });
+      if (photo.dataUrl) setMediaUri(photo.dataUrl);
+    } catch {
+      // User cancelled or permission denied
+    }
+  };
 
   const hasContent = title.trim().length > 0 || note.trim().length > 0 || emotion !== null;
   const canSave = title.trim().length > 0 && emotion !== null;
@@ -141,6 +262,8 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
           emotion: emotion ?? 'joy',
           isMilestone,
           milestoneId: isMilestone && milestoneId ? milestoneId : undefined,
+          mediaUri,
+          duration: voiceDuration,
         });
       }, 900);
       return () => clearTimeout(t);
@@ -251,12 +374,35 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
             <div style={{ padding: '0 20px 40px', display: 'flex', flexDirection: 'column', gap: 16 }}>
               {/* Media area */}
               {(media === 'photo' || media === 'video') && (
-                <motion.div whileTap={{ scale: 0.99 }} style={{ position: 'relative', cursor: 'pointer' }}>
-                  <PhotoPlaceholder
-                    label={media === 'video' ? 'tap to record video' : 'tap to add photo'}
-                    tone="lavender" height={240} radius={20}
-                  />
-                  {media === 'video' && (
+                <motion.div
+                  whileTap={{ scale: 0.99 }}
+                  onClick={capturePhoto}
+                  style={{ position: 'relative', cursor: 'pointer', borderRadius: 20, overflow: 'hidden' }}
+                >
+                  {mediaUri ? (
+                    <div style={{ position: 'relative' }}>
+                      <img
+                        src={mediaUri}
+                        alt="captured"
+                        style={{
+                          width: '100%', height: 240, objectFit: 'cover',
+                          borderRadius: 20, display: 'block',
+                        }}
+                      />
+                      <div style={{
+                        position: 'absolute', top: 10, right: 10,
+                        background: 'rgba(0,0,0,0.5)', borderRadius: 20,
+                        padding: '4px 10px',
+                        fontSize: 11, color: '#fff', letterSpacing: '0.1em',
+                      }}>Tap to retake</div>
+                    </div>
+                  ) : (
+                    <PhotoPlaceholder
+                      label={media === 'video' ? 'tap to record video' : 'tap to add photo'}
+                      tone="lavender" height={240} radius={20}
+                    />
+                  )}
+                  {!mediaUri && (
                     <div style={{
                       position: 'absolute', top: '50%', left: '50%',
                       transform: 'translate(-50%,-50%)',
@@ -264,12 +410,16 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                       background: 'rgba(255,255,255,0.85)',
                       display: 'flex', alignItems: 'center', justifyContent: 'center',
                     }}>
-                      <Icon name="play" size={22} color={T.ink} />
+                      <Icon name="camera" size={22} color={T.ink} />
                     </div>
                   )}
                 </motion.div>
               )}
-              {media === 'voice' && <VoiceRecorder />}
+              {media === 'voice' && (
+                <VoiceRecorder
+                  onRecorded={(uri, dur) => { setMediaUri(uri); setVoiceDuration(dur); }}
+                />
+              )}
               {media === 'text' && (
                 <div style={{
                   background: 'linear-gradient(135deg, #fdf5dc, #fae8b0)',

@@ -16,6 +16,7 @@ export interface Memory {
   milestoneLabel?: string;
   milestoneId?: string;
   duration?: string;
+  mediaUri?: string;
 }
 
 export interface Milestone {
