@@ -56,7 +56,14 @@ function MemoryCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) 
         </div>
       ) : memory.media !== 'text' ? (
         <div style={{ position: 'relative' }}>
-          <PhotoPlaceholder label={memory.label} tone={memory.tone} height={180} radius={0} />
+          {memory.mediaUri ? (
+            <img
+              src={memory.mediaUri}
+              style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
+            />
+          ) : (
+            <PhotoPlaceholder label={memory.label} tone={memory.tone} height={180} radius={0} />
+          )}
           {memory.media === 'video' && (
             <div style={{
               position: 'absolute', top: '50%', left: '50%',
@@ -210,7 +217,7 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
               letterSpacing: '-0.02em', lineHeight: 1.1,
               display: 'flex', alignItems: 'baseline', gap: 7,
             }}>
-              <span>{child.name || 'Mira'}'s</span>
+              <span>{child.name || 'your child'}'s</span>
               <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>world</em>
             </div>
           </div>

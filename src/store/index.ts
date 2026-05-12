@@ -31,6 +31,7 @@ interface AppState {
   deleteMemory: (id: string) => void;
   markMilestoneDone: (id: string, date: string, tone?: string, emotion?: EmotionKind) => void;
   addMember: (m: FamilyMember) => void;
+  updateMember: (id: string, updates: Partial<FamilyMember>) => void;
   removeMember: (id: string) => void;
   showToast: (t: ToastState) => void;
   clearToast: () => void;
@@ -95,6 +96,8 @@ export const useStore = create<AppState>()(
           ),
         })),
       addMember: (m) => set((s) => ({ members: [...s.members, m] })),
+      updateMember: (id, updates) =>
+        set((s) => ({ members: s.members.map((m) => m.id === id ? { ...m, ...updates } : m) })),
       removeMember: (id) => set((s) => ({ members: s.members.filter((m) => m.id !== id) })),
       showToast: (t) => set({ toast: t }),
       clearToast: () => set({ toast: null }),

@@ -103,7 +103,7 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
     }
     medium();
     if (step < total - 1) setStep(step + 1);
-    else onDone({ name: name.trim() || 'Mira', pronouns, colorIdx, dob });
+    else onDone({ name: name.trim(), pronouns, colorIdx, dob });
   };
   const prev = () => { light(); step > 0 ? setStep(step - 1) : onBack(); };
 
@@ -318,7 +318,7 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
               {mode === 'edit' ? 'Changes ready' : 'Everything ready'}
             </div>
             <div style={{ fontSize: 30, lineHeight: 1.1, letterSpacing: '-0.02em', fontWeight: 500 }}>
-              <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>{name || 'Mira'}'s</em> world
+              <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>{name}'s</em> world
             </div>
             <div style={{
               fontSize: 14.5, color: T.inkSoft, marginTop: 12,

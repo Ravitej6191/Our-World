@@ -94,7 +94,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
             <div style={{
               fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
               color: T.inkMuted, marginBottom: 5,
-            }}>Family · {members.length} {members.length === 1 ? 'person' : 'people'}</div>
+            }}>Family{members.length > 0 ? ` · ${members.length} ${members.length === 1 ? 'person' : 'people'}` : ''}</div>
             <div style={{
               fontSize: 28, fontWeight: 500, color: T.ink,
               letterSpacing: '-0.02em', lineHeight: 1.1,

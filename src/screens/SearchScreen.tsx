@@ -268,13 +268,20 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                 }}
               >
                 <div style={{ width: 56, height: 56, borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>
-                  <PhotoPlaceholder
-                    label=""
-                    tone={memory.tone}
-                    height={56}
-                    radius={0}
-                    style={{ width: 56 }}
-                  />
+                  {memory.mediaUri && memory.media !== 'voice' ? (
+                    <img
+                      src={memory.mediaUri}
+                      style={{ width: 56, height: 56, objectFit: 'cover', display: 'block' }}
+                    />
+                  ) : (
+                    <PhotoPlaceholder
+                      label=""
+                      tone={memory.tone}
+                      height={56}
+                      radius={0}
+                      style={{ width: 56 }}
+                    />
+                  )}
                 </div>
                 <div style={{ flex: 1, minWidth: 0 }}>
                   <div style={{

@@ -36,6 +36,8 @@ export interface FamilyMember {
   color: string;
   gradient: string;
   joined: string;
+  notifyNew?: boolean;
+  canAdd?: boolean;
 }
 
 export interface Child {

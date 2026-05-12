@@ -58,6 +58,7 @@ export default function ProfileScreen({
   const { light } = useHaptics();
   const milestones = useStore((s) => s.milestones);
   const members = useStore((s) => s.members);
+  const showToast = useStore((s) => s.showToast);
   const doneMilestones = milestones.filter((m) => m.done);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
   const initial = (child.name || 'M')[0].toUpperCase();
@@ -69,7 +70,7 @@ export default function ProfileScreen({
   const PROFILE_ROWS = [
     { icon: 'users',  label: 'Family & sharing',    sub: `${members.length} ${members.length === 1 ? 'person' : 'people'}`, action: onOpenFamily },
     { icon: 'star',   label: 'Little firsts',        sub: `${doneMilestones.length} reached`,    action: onOpenMilestones },
-    { icon: 'heart',  label: 'Yearly keepsake book', sub: `Create your ${currentYear} book`,     action: () => {} },
+    { icon: 'heart',  label: 'Yearly keepsake book', sub: `Create your ${currentYear} book`,     action: () => showToast({ text: 'Keepsake books coming soon', variant: 'success' }) },
     { icon: 'sun',    label: 'Settings',             sub: 'Privacy, backup, account',            action: onOpenSettings },
     {
       icon: 'plus',
@@ -141,7 +142,7 @@ export default function ProfileScreen({
         <div style={{
           fontFamily: T.fontSerif, fontStyle: 'italic',
           fontSize: 30, color: T.ink, marginBottom: 8, letterSpacing: '-0.02em',
-        }}>{child.name || 'Mira'}</div>
+        }}>{child.name}</div>
 
         <div style={{ fontSize: 13, color: T.inkMuted, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
           {child.pronouns && (

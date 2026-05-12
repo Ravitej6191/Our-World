@@ -4,6 +4,7 @@ import { T } from '../tokens';
 import Icon from '../components/Icon';
 import Toggle from '../components/Toggle';
 import { useHaptics } from '../hooks/useHaptics';
+import { useStore } from '../store';
 import type { FamilyMember } from '../types';
 
 interface Props {
@@ -25,8 +26,9 @@ function Divider() {
 
 export default function MemberDetailScreen({ member, onBack, onRemove }: Props) {
   const { light, medium } = useHaptics();
-  const [notifyNew, setNotifyNew] = useState(true);
-  const [canAdd, setCanAdd] = useState(false);
+  const updateMember = useStore((s) => s.updateMember);
+  const [notifyNew, setNotifyNew] = useState(member?.notifyNew ?? true);
+  const [canAdd, setCanAdd] = useState(member?.canAdd ?? false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
 
   if (!member) {
@@ -136,7 +138,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                   They'll get a gentle nudge
                 </div>
               </div>
-              <Toggle value={notifyNew} onChange={(v) => { light(); setNotifyNew(v); }} />
+              <Toggle value={notifyNew} onChange={(v) => { light(); setNotifyNew(v); updateMember(member.id, { notifyNew: v }); }} />
             </div>
 
             <Divider />
@@ -153,7 +155,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                   Contribute to the timeline
                 </div>
               </div>
-              <Toggle value={canAdd} onChange={(v) => { light(); setCanAdd(v); }} />
+              <Toggle value={canAdd} onChange={(v) => { light(); setCanAdd(v); updateMember(member.id, { canAdd: v }); }} />
             </div>
           </div>
         </div>
