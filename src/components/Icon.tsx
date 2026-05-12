@@ -60,6 +60,8 @@ export default function Icon({ name, size = 22, color = 'currentColor', strokeWi
     stop:        <>{p('M6 6h12v12H6z', { fill: color, stroke: 'none' })}</>,
     eye:         <>{p('M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7-10-7-10-7z')}{c(12,12,3)}</>,
     settings:    <>{c(12,12,3)}{p('M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4')}</>,
+    grid:        <>{p('M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z')}</>,
+    list:        <>{p('M8 6h12M8 12h12M8 18h12')}{c(4,6,1,{fill:color,stroke:'none'})}{c(4,12,1,{fill:color,stroke:'none'})}{c(4,18,1,{fill:color,stroke:'none'})}</>,
   };
 
   return (

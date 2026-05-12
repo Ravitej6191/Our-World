@@ -1,5 +1,5 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useEffect, useRef, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import EmotionGlyph from '../components/EmotionGlyph';
@@ -59,10 +59,44 @@ function ProgressRing({ done, total }: { done: number; total: number }) {
   );
 }
 
-function MilestoneTile({ milestone, onOpen, onCapture }: {
+const SPARKLE_DOTS = [
+  { angle: 0, dist: 38 }, { angle: 45, dist: 42 }, { angle: 90, dist: 38 },
+  { angle: 135, dist: 42 }, { angle: 180, dist: 38 }, { angle: 225, dist: 42 },
+  { angle: 270, dist: 38 }, { angle: 315, dist: 42 },
+];
+
+function SparkleOverlay() {
+  return (
+    <div style={{
+      position: 'absolute', inset: 0, pointerEvents: 'none',
+      display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10,
+    }}>
+      {SPARKLE_DOTS.map((dot, i) => {
+        const rad = (dot.angle * Math.PI) / 180;
+        const x = Math.cos(rad) * dot.dist;
+        const y = Math.sin(rad) * dot.dist;
+        return (
+          <motion.div
+            key={i}
+            initial={{ opacity: 0, x: 0, y: 0, scale: 0 }}
+            animate={{ opacity: [0, 1, 0], x, y, scale: [0, 1, 0.5] }}
+            transition={{ duration: 0.7, delay: i * 0.04, ease: 'easeOut' }}
+            style={{
+              position: 'absolute', width: 6, height: 6, borderRadius: 3,
+              background: i % 2 === 0 ? T.gold : T.lavenderDeep,
+            }}
+          />
+        );
+      })}
+    </div>
+  );
+}
+
+function MilestoneTile({ milestone, onOpen, onCapture, sparkle }: {
   milestone: Milestone;
   onOpen: () => void;
   onCapture: () => void;
+  sparkle: boolean;
 }) {
   const { light, medium } = useHaptics();
   const tone = milestone.tone ?? 'lavender';
@@ -79,8 +113,10 @@ function MilestoneTile({ milestone, onOpen, onCapture }: {
           boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
           WebkitTapHighlightColor: 'transparent' as any,
           display: 'flex', flexDirection: 'column', gap: 12,
+          overflow: 'visible',
         }}
       >
+        <AnimatePresence>{sparkle && <SparkleOverlay />}</AnimatePresence>
         <div style={{
           position: 'absolute', top: 10, right: 10,
           width: 22, height: 22, borderRadius: 11, background: '#fff',
@@ -147,6 +183,18 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
   const done = milestones.filter((m) => m.done).length;
   const total = milestones.length;
 
+  const prevDoneRef = useRef<Set<string>>(new Set(milestones.filter((m) => m.done).map((m) => m.id)));
+  const [sparkleId, setSparkleId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const newlyDone = milestones.filter((m) => m.done && !prevDoneRef.current.has(m.id));
+    if (newlyDone.length > 0) {
+      setSparkleId(newlyDone[0].id);
+      setTimeout(() => setSparkleId(null), 1800);
+    }
+    prevDoneRef.current = new Set(milestones.filter((m) => m.done).map((m) => m.id));
+  }, [milestones]);
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -209,6 +257,7 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
               milestone={m}
               onOpen={() => onOpenMilestone(m.id)}
               onCapture={() => onAddMemoryForMilestone(m.id)}
+              sparkle={sparkleId === m.id}
             />
           ))}
         </div>

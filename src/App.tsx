@@ -23,6 +23,7 @@ import MemberDetailScreen from './screens/MemberDetailScreen';
 import InviteFlow from './screens/InviteFlow';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
+import WeeklyDigestScreen from './screens/WeeklyDigestScreen';
 import TabBar from './components/TabBar';
 import Toast from './components/Toast';
 import type { ChildFlowMode } from './screens/AddChildFlow';
@@ -32,7 +33,7 @@ type Screen =
   | 'home' | 'milestones' | 'milestoneDetail'
   | 'search' | 'addMemory' | 'memoryDetail'
   | 'family' | 'memberDetail' | 'invite'
-  | 'profile' | 'settings';
+  | 'profile' | 'settings' | 'weeklyDigest';
 
 const MAIN_TABS: Screen[] = ['home', 'milestones', 'family', 'profile'];
 
@@ -91,7 +92,7 @@ function todayShort() {
 
 export default function App() {
   const {
-    child, children, memories, milestones, toast, onboardingDone, settings,
+    child, children, memories, milestones, toast, onboardingDone, settings, isLoading,
     setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
     addMember, removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
   } = useStore();
@@ -167,7 +168,7 @@ export default function App() {
   const handleSaveMemory = (m: {
     media: string; title: string; note: string;
     emotion: any; isMilestone: boolean; milestoneId?: string;
-    mediaUri?: string; duration?: string;
+    mediaUri?: string; posterUri?: string; duration?: string;
   }) => {
     const id = `m${Date.now()}`;
     const milestone = milestones.find(ml => ml.id === m.milestoneId);
@@ -188,7 +189,9 @@ export default function App() {
       milestoneLabel: milestone?.label,
       milestoneId: m.milestoneId,
       mediaUri: m.mediaUri,
+      posterUri: m.posterUri,
       duration: m.duration,
+      createdAt: Date.now(),
     });
 
     if (m.isMilestone && m.milestoneId) {
@@ -301,6 +304,7 @@ export default function App() {
             <TimelineScreen
               child={child}
               memories={memories}
+              isLoading={isLoading}
               onOpenMemory={handleOpenMemory}
               onOpenSearch={() => push('search')}
               onGoProfile={() => { setActiveTab('profile'); jumpTab('profile'); }}
@@ -406,6 +410,7 @@ export default function App() {
               onOpenSettings={() => push('settings')}
               onOpenMilestones={() => { setActiveTab('milestones'); jumpTab('milestones'); }}
               onOpenFamily={() => { setActiveTab('family'); jumpTab('family'); }}
+              onOpenDigest={() => push('weeklyDigest')}
               onSwitchChild={() => push('switchChild')}
               onAddChild={() => { setChildFlowMode('add'); push('addChild'); }}
             />
@@ -413,6 +418,14 @@ export default function App() {
 
           {screen === 'settings' && (
             <SettingsScreen onBack={pop} />
+          )}
+
+          {screen === 'weeklyDigest' && (
+            <WeeklyDigestScreen
+              memories={memories}
+              childName={child.name}
+              onBack={pop}
+            />
           )}
         </motion.div>
       </AnimatePresence>

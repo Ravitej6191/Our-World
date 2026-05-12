@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import { T } from '../tokens';
 import { useHaptics } from '../hooks/useHaptics';
@@ -22,6 +22,11 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
     return () => clearTimeout(t);
   }, [isAuthed, onContinue]);
 
+  // Handle redirect result on return from signInWithRedirect (iOS Safari)
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => {});
+  }, []);
+
   const handleGoogle = async () => {
     medium();
     setLoading(true);
@@ -30,8 +35,17 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
       await signInWithPopup(auth, googleProvider);
       // onAuthStateChanged in App.tsx will set isAuthed → triggers auto-advance above
     } catch (e: any) {
-      if (e?.code !== 'auth/popup-closed-by-user') setError(true);
-      setLoading(false);
+      const popupBlocked = e?.code === 'auth/popup-blocked'
+        || e?.code === 'auth/operation-not-supported-in-this-environment';
+      if (popupBlocked) {
+        // iOS Safari blocks popups — fall back to redirect flow
+        try { await signInWithRedirect(auth, googleProvider); } catch { setError(true); setLoading(false); }
+      } else if (e?.code !== 'auth/popup-closed-by-user') {
+        setError(true);
+        setLoading(false);
+      } else {
+        setLoading(false);
+      }
     }
   };
 

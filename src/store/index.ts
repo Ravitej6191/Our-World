@@ -21,6 +21,7 @@ interface AppState {
   toast: ToastState | null;
   settings: AppSettings;
   searchHistory: string[];
+  isLoading: boolean;
 
   completeOnboarding: (c: Child) => void;
   addChildProfile: (c: Child) => void;
@@ -40,6 +41,13 @@ interface AppState {
   clearSearchHistory: () => void;
 }
 
+// IDs and dates of old pre-seeded demo milestones to migrate away
+const OLD_SEED: Record<string, string> = {
+  smile: 'Apr 21, 2025',
+  laugh: 'Apr 22, 2025',
+  roll:  'Mar 30, 2025',
+};
+
 export const useStore = create<AppState>()(
   persist(
     (set) => ({
@@ -53,6 +61,7 @@ export const useStore = create<AppState>()(
       toast: null,
       settings: { faceId: false, privateMode: false, autoSave: true },
       searchHistory: [],
+      isLoading: false,
 
       completeOnboarding: (c) =>
         set(() => ({
@@ -110,6 +119,18 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'ourworld-store',
+      version: 1,
+      migrate: (persisted: any, version: number) => {
+        if (version < 1) {
+          const milestones = (persisted.milestones ?? []).map((m: any) =>
+            m.id in OLD_SEED && m.done && m.date === OLD_SEED[m.id]
+              ? { ...m, done: false, date: '', tone: undefined, emotion: undefined }
+              : m
+          );
+          return { ...persisted, milestones };
+        }
+        return persisted;
+      },
       partialize: (state) => ({
         onboardingDone: state.onboardingDone,
         child: state.child,

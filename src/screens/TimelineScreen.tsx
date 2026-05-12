@@ -1,17 +1,19 @@
-import React, { useMemo } from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo, useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import VoiceWaveform from '../components/VoiceWaveform';
 import { EmotionChip } from '../components/EmotionGlyph';
 import { useHaptics } from '../hooks/useHaptics';
+import { useStore } from '../store';
 import { CHILD_PALETTES } from '../shared/constants';
 import type { Memory, Child } from '../types';
 
 interface Props {
   child: Child;
   memories: Memory[];
+  isLoading?: boolean;
   onOpenMemory: (id: string) => void;
   onOpenSearch: () => void;
   onGoProfile: () => void;
@@ -23,6 +25,28 @@ const chromeBtn: React.CSSProperties = {
   display: 'flex', alignItems: 'center', justifyContent: 'center',
   cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
 };
+
+const MONTH_NAMES = ['January','February','March','April','May','June',
+  'July','August','September','October','November','December'];
+
+function getAgeLabel(dob: Child['dob'], groupLabel: string): string | null {
+  if (!dob?.y || !dob?.m || !dob?.d) return null;
+  const parts = groupLabel.split(' ');
+  if (parts.length < 2) return null;
+  const monthIdx = MONTH_NAMES.indexOf(parts[0]);
+  if (monthIdx === -1) return null;
+  const groupYear = Number(parts[1]);
+  if (!groupYear) return null;
+  const birth = new Date(Number(dob.y), Number(dob.m) - 1, Number(dob.d));
+  const groupEnd = new Date(groupYear, monthIdx + 1, 0);
+  const totalMonths = (groupEnd.getFullYear() - birth.getFullYear()) * 12 + (groupEnd.getMonth() - birth.getMonth());
+  if (totalMonths < 0 || totalMonths > 240) return null;
+  if (totalMonths === 0) return 'newborn';
+  if (totalMonths < 24) return `${totalMonths} month${totalMonths !== 1 ? 's' : ''} old`;
+  const years = Math.floor(totalMonths / 12);
+  const rem = totalMonths % 12;
+  return rem > 0 ? `${years} yr ${rem} mo old` : `${years} year${years !== 1 ? 's' : ''} old`;
+}
 
 function MemoryCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) {
   const { light } = useHaptics();
@@ -56,11 +80,14 @@ function MemoryCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) 
         </div>
       ) : memory.media !== 'text' ? (
         <div style={{ position: 'relative' }}>
-          {memory.mediaUri ? (
-            <img
-              src={memory.mediaUri}
-              style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }}
-            />
+          {memory.media === 'video' ? (
+            memory.posterUri ? (
+              <img src={memory.posterUri} style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />
+            ) : (
+              <PhotoPlaceholder label={memory.label} tone={memory.tone} height={180} radius={0} />
+            )
+          ) : memory.mediaUri ? (
+            <img src={memory.mediaUri} style={{ width: '100%', height: 180, objectFit: 'cover', display: 'block' }} />
           ) : (
             <PhotoPlaceholder label={memory.label} tone={memory.tone} height={180} radius={0} />
           )}
@@ -152,6 +179,75 @@ function MilestoneCard({ memory, onOpen }: { memory: Memory; onOpen: () => void 
   );
 }
 
+// Compact grid card used in grid view
+function GridCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) {
+  const { light } = useHaptics();
+  const thumb = memory.media === 'video' ? memory.posterUri : (memory.media === 'photo' ? memory.mediaUri : undefined);
+  return (
+    <motion.button
+      whileTap={{ scale: 0.95 }}
+      onClick={() => { light(); onOpen(); }}
+      style={{
+        aspectRatio: '1', borderRadius: 16, overflow: 'hidden',
+        border: 'none', padding: 0, cursor: 'pointer', position: 'relative',
+        background: T.bgCool,
+        boxShadow: '0 1px 4px rgba(58,50,69,0.08)',
+        WebkitTapHighlightColor: 'transparent' as any,
+      }}
+    >
+      {thumb ? (
+        <img src={thumb} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
+      ) : memory.media === 'voice' ? (
+        <div style={{
+          width: '100%', height: '100%',
+          background: 'linear-gradient(135deg, #e0d8f5, #d8cef0)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="mic" size={24} color={T.lavenderDeep} strokeWidth={1.8} />
+        </div>
+      ) : (
+        <div style={{
+          width: '100%', height: '100%',
+          background: 'linear-gradient(135deg, #fdf5dc, #fae8b0)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="text" size={22} color={T.gold} strokeWidth={1.8} />
+        </div>
+      )}
+      {memory.milestone && (
+        <div style={{
+          position: 'absolute', top: 6, right: 6,
+          width: 20, height: 20, borderRadius: 10,
+          background: 'rgba(212,168,71,0.9)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+        }}>
+          <Icon name="star" size={10} color="#fff" strokeWidth={2} />
+        </div>
+      )}
+    </motion.button>
+  );
+}
+
+function SkeletonCard() {
+  return (
+    <div style={{
+      background: T.card, borderRadius: 20, overflow: 'hidden',
+      boxShadow: '0 1px 3px rgba(58,50,69,0.04)',
+    }}>
+      <div style={{
+        height: 160, background: 'linear-gradient(90deg, #f0ecf8 25%, #e8e0f5 50%, #f0ecf8 75%)',
+        backgroundSize: '200% 100%',
+        animation: 'shimmer 1.4s infinite',
+      }} />
+      <div style={{ padding: '12px 16px 16px', display: 'flex', flexDirection: 'column', gap: 8 }}>
+        <div style={{ height: 14, borderRadius: 7, background: '#ede8f5', width: '65%' }} />
+        <div style={{ height: 11, borderRadius: 6, background: '#f0ecf8', width: '80%' }} />
+        <div style={{ height: 11, borderRadius: 6, background: '#f0ecf8', width: '50%' }} />
+      </div>
+    </div>
+  );
+}
+
 interface MemoryGroup { key: string; label: string; items: Memory[] }
 
 function groupMemoriesByMonth(memories: Memory[]): MemoryGroup[] {
@@ -170,11 +266,26 @@ function groupMemoriesByMonth(memories: Memory[]): MemoryGroup[] {
   return groups;
 }
 
-export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSearch, onGoProfile }: Props) {
+export default function TimelineScreen({ child, memories, isLoading, onOpenMemory, onOpenSearch, onGoProfile }: Props) {
   const { light } = useHaptics();
+  const showToast = useStore((s) => s.showToast);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
   const initial = (child.name || 'M')[0].toUpperCase();
   const groups = useMemo(() => groupMemoriesByMonth(memories), [memories]);
+  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
+
+  const todayShort = useMemo(() =>
+    new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), []);
+  const thisYear = String(new Date().getFullYear());
+
+  const onThisDayMemories = useMemo(() =>
+    memories.filter((m) =>
+      m.dateShort === todayShort && !(m.group ?? '').includes(thisYear)
+    ), [memories, todayShort, thisYear]);
+
+  const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
+  const lastMemoryTs = memories[0]?.createdAt ?? 0;
+  const showNudge = memories.length > 0 && lastMemoryTs > 0 && lastMemoryTs < fiveDaysAgo;
 
   return (
     <motion.div
@@ -187,6 +298,9 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
         overflow: 'hidden',
       }}
     >
+      {/* Shimmer keyframe */}
+      <style>{`@keyframes shimmer { 0%{background-position:200% 0} 100%{background-position:-200% 0} }`}</style>
+
       {/* Decorative background orbs */}
       <div style={{
         position: 'absolute', top: -60, left: -60, width: 260, height: 260,
@@ -222,6 +336,15 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
+            {memories.length > 0 && (
+              <motion.button
+                whileTap={{ scale: 0.9 }}
+                onClick={() => { light(); setViewMode(v => v === 'list' ? 'grid' : 'list'); }}
+                style={chromeBtn}
+              >
+                <Icon name={viewMode === 'list' ? 'grid' : 'list'} size={18} color={T.inkSoft} />
+              </motion.button>
+            )}
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onOpenSearch(); }} style={chromeBtn}>
               <Icon name="search" size={18} color={T.inkSoft} />
             </motion.button>
@@ -239,12 +362,80 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
         </div>
       </div>
 
-      {/* Timeline */}
+      {/* Timeline / Grid */}
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       } as any}>
-        {groups.length === 0 ? (
+
+        {/* Memory nudge */}
+        <AnimatePresence>
+          {showNudge && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              style={{
+                background: T.bgCool, borderRadius: 16, padding: '12px 16px',
+                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
+              }}
+            >
+              <span style={{ fontSize: 20 }}>✦</span>
+              <div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.4 }}>
+                What has {child.name || 'them'} been up to lately?
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* On this day */}
+        <AnimatePresence>
+          {onThisDayMemories.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: -8 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0 }}
+              style={{ marginBottom: 20 }}
+            >
+              <div style={{
+                background: 'linear-gradient(135deg, #fdf5dc, #fae8b0)',
+                borderRadius: 18, padding: '14px 16px',
+              }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                  <Icon name="star" size={14} color={T.gold} strokeWidth={2} />
+                  <span style={{
+                    fontSize: 10.5, letterSpacing: '0.22em', textTransform: 'uppercase',
+                    color: T.gold, fontWeight: 600,
+                  }}>On this day</span>
+                </div>
+                {onThisDayMemories.map((m) => (
+                  <motion.button
+                    key={m.id}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => { light(); onOpenMemory(m.id); }}
+                    style={{
+                      width: '100%', display: 'flex', alignItems: 'center', gap: 10,
+                      background: 'rgba(255,255,255,0.7)', borderRadius: 12,
+                      border: 'none', padding: '10px 12px', cursor: 'pointer',
+                      WebkitTapHighlightColor: 'transparent' as any,
+                    }}
+                  >
+                    <div style={{ fontSize: 12, color: T.gold, minWidth: 52 }}>{m.group?.split(' ')[1] ?? ''}</div>
+                    <div style={{ fontSize: 13.5, fontWeight: 600, color: T.ink, flex: 1, textAlign: 'left' }}>{m.title}</div>
+                    <Icon name="chevron" size={14} color={T.gold} />
+                  </motion.button>
+                ))}
+              </div>
+            </motion.div>
+          )}
+        </AnimatePresence>
+
+        {/* Loading skeleton */}
+        {isLoading ? (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 20 }}>
+            {[0, 1, 2].map((i) => <SkeletonCard key={i} />)}
+          </div>
+        ) : groups.length === 0 ? (
           <div style={{
             paddingTop: 80, textAlign: 'center',
             fontSize: 15, color: T.inkFaint, lineHeight: 1.6,
@@ -252,76 +443,94 @@ export default function TimelineScreen({ child, memories, onOpenMemory, onOpenSe
             <div style={{ fontSize: 32, marginBottom: 12 }}>✦</div>
             No memories yet.<br />Tap + to capture the first one.
           </div>
+        ) : viewMode === 'grid' ? (
+          /* Grid view */
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
+            {memories.map((memory) => (
+              <GridCard key={memory.id} memory={memory} onOpen={() => onOpenMemory(memory.id)} />
+            ))}
+          </div>
         ) : (
-          groups.map((group) => (
-            <div key={group.key} style={{ marginBottom: 8 }}>
-              {/* Month header */}
-              <div style={{
-                display: 'flex', alignItems: 'center', gap: 12,
-                paddingTop: 20, paddingBottom: 14,
-              }}>
+          /* List view */
+          groups.map((group) => {
+            const ageLabel = getAgeLabel(child.dob, group.label);
+            return (
+              <div key={group.key} style={{ marginBottom: 8 }}>
+                {/* Month header */}
                 <div style={{
-                  fontSize: 13, fontWeight: 600, color: T.ink,
-                  letterSpacing: '-0.01em',
-                }}>{group.label}</div>
-                <div style={{ flex: 1, height: 1, background: T.lineSoft }} />
-                <div style={{ fontSize: 12, color: T.inkMuted }}>
-                  {group.items.length}
-                </div>
-              </div>
-
-              {/* Memories in this month */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
-                {group.items.map((memory, idx) => (
-                  <div key={memory.id} style={{ display: 'flex', gap: 0, marginBottom: 20 }}>
-                    {/* Timeline rail */}
+                  display: 'flex', alignItems: 'center', gap: 12,
+                  paddingTop: 20, paddingBottom: 14,
+                }}>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: 2 }}>
                     <div style={{
-                      width: 44, flexShrink: 0, display: 'flex',
-                      flexDirection: 'column', alignItems: 'center',
-                    }}>
+                      fontSize: 13, fontWeight: 600, color: T.ink,
+                      letterSpacing: '-0.01em',
+                    }}>{group.label}</div>
+                    {ageLabel && (
                       <div style={{
-                        width: 8, height: 8, borderRadius: 4, marginTop: 14,
-                        background: memory.milestone ? T.gold : T.lavenderDeep,
-                        flexShrink: 0,
-                        boxShadow: memory.milestone
-                          ? `0 0 0 3px rgba(212,168,71,0.2)`
-                          : `0 0 0 3px rgba(139,111,199,0.15)`,
-                      }} />
-                      {idx < group.items.length - 1 && (
-                        <div style={{
-                          width: 1, flex: 1, minHeight: 24, marginTop: 6,
-                          background: `linear-gradient(${T.lineSoft}, transparent)`,
-                        }} />
-                      )}
-                    </div>
+                        fontSize: 10.5, color: T.lavenderDeep,
+                        letterSpacing: '0.06em', fontWeight: 500,
+                      }}>{ageLabel}</div>
+                    )}
+                  </div>
+                  <div style={{ flex: 1, height: 1, background: T.lineSoft }} />
+                  <div style={{ fontSize: 12, color: T.inkMuted }}>
+                    {group.items.length}
+                  </div>
+                </div>
 
-                    {/* Card + meta */}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      {/* Date + time */}
+                {/* Memories in this month */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: 0 }}>
+                  {group.items.map((memory, idx) => (
+                    <div key={memory.id} style={{ display: 'flex', gap: 0, marginBottom: 20 }}>
+                      {/* Timeline rail */}
                       <div style={{
-                        fontSize: 11, letterSpacing: '0.08em',
-                        color: T.inkMuted, marginBottom: 8, marginTop: 10,
-                        display: 'flex', alignItems: 'center', gap: 6,
+                        width: 44, flexShrink: 0, display: 'flex',
+                        flexDirection: 'column', alignItems: 'center',
                       }}>
-                        <span>{memory.dateShort ?? memory.date}</span>
-                        {memory.time && (
-                          <>
-                            <span style={{ color: T.lineSoft }}>·</span>
-                            <span>{memory.time}</span>
-                          </>
+                        <div style={{
+                          width: 8, height: 8, borderRadius: 4, marginTop: 14,
+                          background: memory.milestone ? T.gold : T.lavenderDeep,
+                          flexShrink: 0,
+                          boxShadow: memory.milestone
+                            ? `0 0 0 3px rgba(212,168,71,0.2)`
+                            : `0 0 0 3px rgba(139,111,199,0.15)`,
+                        }} />
+                        {idx < group.items.length - 1 && (
+                          <div style={{
+                            width: 1, flex: 1, minHeight: 24, marginTop: 6,
+                            background: `linear-gradient(${T.lineSoft}, transparent)`,
+                          }} />
                         )}
                       </div>
-                      {memory.milestone ? (
-                        <MilestoneCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
-                      ) : (
-                        <MemoryCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
-                      )}
+
+                      {/* Card + meta */}
+                      <div style={{ flex: 1, minWidth: 0 }}>
+                        <div style={{
+                          fontSize: 11, letterSpacing: '0.08em',
+                          color: T.inkMuted, marginBottom: 8, marginTop: 10,
+                          display: 'flex', alignItems: 'center', gap: 6,
+                        }}>
+                          <span>{memory.dateShort ?? memory.date}</span>
+                          {memory.time && (
+                            <>
+                              <span style={{ color: T.lineSoft }}>·</span>
+                              <span>{memory.time}</span>
+                            </>
+                          )}
+                        </div>
+                        {memory.milestone ? (
+                          <MilestoneCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
+                        ) : (
+                          <MemoryCard memory={memory} onOpen={() => onOpenMemory(memory.id)} />
+                        )}
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  ))}
+                </div>
               </div>
-            </div>
-          ))
+            );
+          })
         )}
       </div>
     </motion.div>

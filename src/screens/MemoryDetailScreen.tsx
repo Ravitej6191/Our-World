@@ -173,6 +173,21 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
           <div style={{ display: 'flex', gap: 10 }}>
             <motion.button
               whileTap={{ scale: 0.9 }}
+              onClick={async () => {
+                light();
+                const text = [memory.title, memory.note].filter(Boolean).join('\n\n');
+                if (navigator.share) {
+                  try { await navigator.share({ title: memory.title, text }); } catch { /* cancelled */ }
+                } else {
+                  await navigator.clipboard?.writeText(text);
+                }
+              }}
+              style={chromeBtn}
+            >
+              <Icon name="share" size={18} color={T.ink} />
+            </motion.button>
+            <motion.button
+              whileTap={{ scale: 0.9 }}
               onClick={() => { light(); startEdit(); }}
               style={chromeBtn}
             >

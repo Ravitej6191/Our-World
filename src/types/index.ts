@@ -17,6 +17,8 @@ export interface Memory {
   milestoneId?: string;
   duration?: string;
   mediaUri?: string;
+  posterUri?: string;
+  createdAt?: number;
 }
 
 export interface Milestone {

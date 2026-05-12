@@ -15,6 +15,7 @@ interface Props {
   onOpenSettings: () => void;
   onOpenMilestones: () => void;
   onOpenFamily: () => void;
+  onOpenDigest: () => void;
   onSwitchChild: () => void;
   onAddChild: () => void;
   memoriesCount: number;
@@ -53,7 +54,7 @@ const chromeBtn: React.CSSProperties = {
 
 export default function ProfileScreen({
   child, children, onBack, onEdit, onOpenSettings, onOpenMilestones,
-  onOpenFamily, onSwitchChild, onAddChild, memoriesCount,
+  onOpenFamily, onOpenDigest, onSwitchChild, onAddChild, memoriesCount,
 }: Props) {
   const { light } = useHaptics();
   const milestones = useStore((s) => s.milestones);
@@ -68,10 +69,11 @@ export default function ProfileScreen({
   const hasMultipleChildren = children.length > 1;
 
   const PROFILE_ROWS = [
-    { icon: 'users',  label: 'Family & sharing',    sub: `${members.length} ${members.length === 1 ? 'person' : 'people'}`, action: onOpenFamily },
-    { icon: 'star',   label: 'Little firsts',        sub: `${doneMilestones.length} reached`,    action: onOpenMilestones },
-    { icon: 'heart',  label: 'Yearly keepsake book', sub: `Create your ${currentYear} book`,     action: () => showToast({ text: 'Keepsake books coming soon', variant: 'success' }) },
-    { icon: 'sun',    label: 'Settings',             sub: 'Privacy, backup, account',            action: onOpenSettings },
+    { icon: 'users',    label: 'Family & sharing',    sub: `${members.length} ${members.length === 1 ? 'person' : 'people'}`, action: onOpenFamily },
+    { icon: 'star',     label: 'Little firsts',       sub: `${doneMilestones.length} reached`,    action: onOpenMilestones },
+    { icon: 'calendar', label: 'Weekly digest',       sub: 'Memories & feelings this week',       action: onOpenDigest },
+    { icon: 'heart',    label: 'Yearly keepsake book',sub: `Create your ${currentYear} book`,     action: () => showToast({ text: 'Keepsake books coming soon', variant: 'success' }) },
+    { icon: 'sun',      label: 'Settings',            sub: 'Privacy, backup, account',            action: onOpenSettings },
     {
       icon: 'plus',
       label: hasMultipleChildren ? 'Switch child' : 'Add another child',

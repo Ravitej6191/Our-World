@@ -22,6 +22,7 @@ interface Props {
     milestoneId?: string;
     isMilestone: boolean;
     mediaUri?: string;
+    posterUri?: string;
     duration?: string;
   }) => void;
 }
@@ -45,8 +46,32 @@ const MEDIA_OPTIONS: { type: MediaType; icon: string; label: string; sub: string
 
 const EMOTIONS_LIST = Object.entries(EMOTIONS) as [EmotionKind, typeof EMOTIONS[EmotionKind]][];
 
+const MAX_RECORD_SECONDS = 60;
+
+function extractVideoFrame(src: string): Promise<string> {
+  return new Promise((resolve) => {
+    const video = document.createElement('video');
+    video.src = src;
+    video.muted = true;
+    video.playsInline = true;
+    video.currentTime = 0.1;
+    video.onloadeddata = () => {
+      try {
+        const canvas = document.createElement('canvas');
+        const w = video.videoWidth || 480;
+        const h = video.videoHeight || 360;
+        canvas.width = Math.min(w, 480);
+        canvas.height = Math.round(Math.min(w, 480) * (h / w));
+        canvas.getContext('2d')?.drawImage(video, 0, 0, canvas.width, canvas.height);
+        resolve(canvas.toDataURL('image/jpeg', 0.7));
+      } catch { resolve(''); }
+    };
+    video.onerror = () => resolve('');
+  });
+}
+
 interface VoiceRecorderProps {
-  onRecorded: (uri: string, duration: string) => void;
+  onRecorded: (uri: string, duration: string, transcript?: string) => void;
 }
 
 function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
@@ -56,9 +81,12 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const maxTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const recognitionRef = useRef<any>(null);
+  const transcriptRef = useRef('');
   const { light } = useHaptics();
 
   const startRecording = async () => {
@@ -66,18 +94,20 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       const mr = new MediaRecorder(stream);
       chunksRef.current = [];
+      transcriptRef.current = '';
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
+        recognitionRef.current?.stop();
+        if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
         const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
         const dur = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
-        // Convert to base64 data URL so it survives page refresh
         const reader = new FileReader();
         reader.onloadend = () => {
           const dataUri = reader.result as string;
           setAudioUri(dataUri);
           setRecorded(true);
-          onRecorded(dataUri, dur);
+          onRecorded(dataUri, dur, transcriptRef.current || undefined);
         };
         reader.readAsDataURL(blob);
       };
@@ -85,6 +115,22 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
       mediaRef.current = mr;
       setRecording(true);
       intervalRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      maxTimerRef.current = setTimeout(() => stopRecording(), MAX_RECORD_SECONDS * 1000);
+
+      // Live transcription via Web Speech API (best-effort)
+      try {
+        const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        if (SR) {
+          const rec = new SR();
+          rec.continuous = true;
+          rec.interimResults = false;
+          rec.onresult = (e: any) => {
+            transcriptRef.current = Array.from(e.results as any[]).map((r: any) => r[0].transcript).join(' ');
+          };
+          rec.start();
+          recognitionRef.current = rec;
+        }
+      } catch { /* Speech API not available */ }
     } catch {
       // Microphone permission denied or not available
     }
@@ -95,6 +141,7 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
     mediaRef.current = null;
     setRecording(false);
     if (intervalRef.current) clearInterval(intervalRef.current);
+    if (maxTimerRef.current) { clearTimeout(maxTimerRef.current); maxTimerRef.current = null; }
   };
 
   const toggle = () => {
@@ -204,9 +251,13 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
           transition={{ repeat: Infinity, duration: 1.2 }}
           style={{
             fontSize: 12, letterSpacing: '0.1em', textTransform: 'uppercase',
-            color: T.blushDeep, fontWeight: 500,
+            color: seconds >= 50 ? T.blushDeep : T.lavenderDeep, fontWeight: 500,
           }}
-        >Recording…</motion.div>
+        >
+          {seconds >= 50
+            ? `${MAX_RECORD_SECONDS - seconds}s left`
+            : 'Recording…'}
+        </motion.div>
       )}
       {recorded && !recording && (
         <div style={{ fontSize: 12, color: T.lavenderDeep, fontWeight: 500 }}>
@@ -224,6 +275,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
   const [step, setStep] = useState<Step>('pick');
   const [media, setMedia] = useState<MediaType>('photo');
   const [mediaUri, setMediaUri] = useState<string | undefined>(undefined);
+  const [posterUri, setPosterUri] = useState<string | undefined>(undefined);
   const [voiceDuration, setVoiceDuration] = useState<string | undefined>(undefined);
   const [title, setTitle] = useState('');
   const [note, setNote] = useState('');
@@ -255,7 +307,12 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
     const file = e.target.files?.[0];
     if (!file) return;
     const reader = new FileReader();
-    reader.onloadend = () => setMediaUri(reader.result as string);
+    reader.onloadend = async () => {
+      const dataUri = reader.result as string;
+      setMediaUri(dataUri);
+      const frame = await extractVideoFrame(dataUri);
+      if (frame) setPosterUri(frame);
+    };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
@@ -281,6 +338,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
           isMilestone,
           milestoneId: isMilestone && milestoneId ? milestoneId : undefined,
           mediaUri,
+          posterUri,
           duration: voiceDuration,
         });
       }, 900);
@@ -457,7 +515,11 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
               )}
               {media === 'voice' && (
                 <VoiceRecorder
-                  onRecorded={(uri, dur) => { setMediaUri(uri); setVoiceDuration(dur); }}
+                  onRecorded={(uri, dur, transcript) => {
+                    setMediaUri(uri);
+                    setVoiceDuration(dur);
+                    if (transcript && !note.trim()) setNote(transcript);
+                  }}
                 />
               )}
               {media === 'text' && (

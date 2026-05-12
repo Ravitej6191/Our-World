@@ -27,6 +27,7 @@ export function useFirestoreSync() {
     async function loadFromFirestore() {
       const userId = userIdRef.current ?? auth.currentUser?.uid;
       if (!userId) return;
+      useStore.setState({ isLoading: true });
       try {
         const [memoriesSnap, milestonesSnap, membersSnap, childSnap, settingsSnap] =
           await Promise.all([
@@ -64,6 +65,7 @@ export function useFirestoreSync() {
         // Firestore not configured yet — use local state
       } finally {
         initialLoadDone.current = true;
+        useStore.setState({ isLoading: false });
       }
     }
 
