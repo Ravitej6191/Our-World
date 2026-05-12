@@ -91,7 +91,7 @@ export default function App() {
   const {
     child, children, memories, milestones, toast, onboardingDone,
     setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
-    removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
+    addMember, removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
   } = useStore();
 
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
@@ -286,6 +286,7 @@ export default function App() {
               memories={memories}
               onBack={pop}
               onAddMemory={() => handleOpenAddMemory(openMilestoneId ?? undefined)}
+              onOpenMemory={handleOpenMemory}
             />
           )}
 
@@ -336,7 +337,27 @@ export default function App() {
           {screen === 'invite' && (
             <InviteFlow
               onClose={pop}
-              onInvited={() => { pop(); showToast({ text: 'Invite sent!', variant: 'success' }); }}
+              onInvited={({ name, role }) => {
+                const initial = (name || role || '?')[0].toUpperCase();
+                const gradients = [
+                  'linear-gradient(135deg, #b8d5f0, #7aa8d8)',
+                  'linear-gradient(135deg, #f5b8b8, #e07878)',
+                  'linear-gradient(135deg, #c0e8d4, #88d0a8)',
+                  'linear-gradient(135deg, #e0d090, #c0a850)',
+                  'linear-gradient(135deg, #d8cef0, #b8a0e0)',
+                ];
+                addMember({
+                  id: `member-${Date.now()}`,
+                  name: name || role,
+                  relation: role,
+                  initial,
+                  color: '#93b8e0',
+                  gradient: gradients[Math.floor(Math.random() * gradients.length)],
+                  joined: `Joined ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+                });
+                pop();
+                showToast({ text: `${name || 'Invite'} sent!`, variant: 'success' });
+              }}
             />
           )}
 

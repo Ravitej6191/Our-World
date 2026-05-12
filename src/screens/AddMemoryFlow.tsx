@@ -8,6 +8,7 @@ import EmotionGlyph from '../components/EmotionGlyph';
 import Toggle from '../components/Toggle';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
+import { getPronouns } from '../shared/constants';
 
 interface Props {
   defaultMilestoneId?: string | null;
@@ -108,6 +109,8 @@ function VoiceRecorder() {
 
 export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: Props) {
   const milestones = useStore((s) => s.milestones);
+  const child = useStore((s) => s.child);
+  const { possessive } = getPronouns(child.pronouns);
   const [step, setStep] = useState<Step>('pick');
   const [media, setMedia] = useState<MediaType>('photo');
   const [title, setTitle] = useState('');
@@ -452,7 +455,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                   ? 'Add a title to save'
                   : !emotion
                   ? 'Choose a feeling to save'
-                  : 'Save to her world'}
+                  : `Save to ${possessive} world`}
               </motion.button>
             </div>
           </motion.div>
@@ -498,7 +501,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
               transition={{ delay: 0.35 }}
               style={{ fontSize: 15, color: T.inkMuted, textAlign: 'center', lineHeight: 1.5 }}
             >
-              This moment is safe in her world.
+              This moment is safe in {possessive} world.
             </motion.div>
           </motion.div>
         )}

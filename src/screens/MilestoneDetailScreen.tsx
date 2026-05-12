@@ -12,6 +12,7 @@ interface Props {
   memories: Memory[];
   onBack: () => void;
   onAddMemory: () => void;
+  onOpenMemory?: (id: string) => void;
 }
 
 const chromeBtn: React.CSSProperties = {
@@ -21,7 +22,7 @@ const chromeBtn: React.CSSProperties = {
   cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
 };
 
-export default function MilestoneDetailScreen({ milestone, memories, onBack, onAddMemory }: Props) {
+export default function MilestoneDetailScreen({ milestone, memories, onBack, onAddMemory, onOpenMemory }: Props) {
   const { light, medium } = useHaptics();
   if (!milestone) {
     return (
@@ -138,12 +139,24 @@ export default function MilestoneDetailScreen({ milestone, memories, onBack, onA
 
         {/* Memories linked card — real count */}
         {milestone.done && (
-          <div style={{
-            background: T.card, borderRadius: 18,
-            padding: '16px 18px',
-            boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-            display: 'flex', alignItems: 'center', gap: 14,
-          }}>
+          <motion.button
+            whileTap={linkedMemories.length > 0 ? { scale: 0.98 } : {}}
+            onClick={() => {
+              if (linkedMemories.length > 0 && onOpenMemory) {
+                light();
+                onOpenMemory(linkedMemories[0].id);
+              }
+            }}
+            style={{
+              background: T.card, borderRadius: 18,
+              padding: '16px 18px',
+              boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
+              display: 'flex', alignItems: 'center', gap: 14,
+              border: 'none', cursor: linkedMemories.length > 0 ? 'pointer' : 'default',
+              width: '100%', textAlign: 'left',
+              WebkitTapHighlightColor: 'transparent' as any,
+            }}
+          >
             <div style={{
               width: 42, height: 42, borderRadius: 14,
               background: '#fde0e4',
@@ -162,14 +175,14 @@ export default function MilestoneDetailScreen({ milestone, memories, onBack, onA
               <div style={{ fontSize: 13, color: T.inkMuted }}>
                 {linkedMemories.length === 0
                   ? 'Capture this moment below'
-                  : 'See everything from this day'
+                  : 'Tap to open'
                 }
               </div>
             </div>
             {linkedMemories.length > 0 && (
               <Icon name="chevron" size={16} color={T.inkFaint} />
             )}
-          </div>
+          </motion.button>
         )}
 
         {/* CTA */}

@@ -6,6 +6,7 @@ import Icon from '../components/Icon';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import { EmotionChip } from '../components/EmotionGlyph';
 import EmotionGlyph from '../components/EmotionGlyph';
+import VoiceWaveform from '../components/VoiceWaveform';
 import { useHaptics } from '../hooks/useHaptics';
 import type { Memory } from '../types';
 
@@ -90,9 +91,16 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
           <div style={{
             margin: '0 16px', borderRadius: 28, height: 200,
             background: 'linear-gradient(135deg, #e0d8f5, #d8cef0)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
+            display: 'flex', flexDirection: 'column',
+            alignItems: 'center', justifyContent: 'center', gap: 16,
           }}>
-            <Icon name="mic" size={44} color={T.lavenderDeep} strokeWidth={1.4} />
+            <VoiceWaveform bars={36} height={60} color="rgba(139,111,199,0.6)" />
+            {memory.duration && (
+              <span style={{
+                fontFamily: T.fontMono, fontSize: 14, color: T.lavenderDeep,
+                letterSpacing: '0.08em', fontWeight: 500,
+              }}>{memory.duration}</span>
+            )}
           </div>
         ) : (
           <PhotoPlaceholder

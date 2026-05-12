@@ -4,6 +4,7 @@ import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
+import { getPronouns } from '../shared/constants';
 import type { FamilyMember } from '../types';
 
 interface Props {
@@ -63,6 +64,8 @@ function MemberRow({ member, onOpen }: { member: FamilyMember; onOpen: () => voi
 export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) {
   const { light, medium } = useHaptics();
   const members = useStore((s) => s.members);
+  const child = useStore((s) => s.child);
+  const { object } = getPronouns(child.pronouns);
   const [privacyMode, setPrivacyMode] = useState<'just' | 'shared'>('just');
 
   return (
@@ -98,7 +101,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
               letterSpacing: '-0.02em', lineHeight: 1.1,
             }}>
               The people{' '}
-              <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>who love her.</em>
+              <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>who love {object}.</em>
             </div>
           </div>
         </div>
@@ -138,13 +141,22 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       } as any}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          {members.map((member) => (
+          {(privacyMode === 'shared' ? members : []).map((member) => (
             <MemberRow
               key={member.id}
               member={member}
               onOpen={() => onOpenMember(member.id)}
             />
           ))}
+          {privacyMode === 'just' && (
+            <div style={{
+              textAlign: 'center', padding: '32px 20px',
+              fontSize: 14, color: T.inkFaint, lineHeight: 1.55,
+            }}>
+              Only you can see this world.<br />
+              Switch to <strong style={{ color: T.inkMuted }}>Shared</strong> to see who has access.
+            </div>
+          )}
 
           {/* Invite row */}
           <motion.button
@@ -172,7 +184,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
                 Invite someone
               </div>
               <div style={{ fontSize: 12.5, color: T.inkFaint, marginTop: 2 }}>
-                Give someone close a quiet window in
+                Give someone close a window into {child.name}'s world
               </div>
             </div>
             <Icon name="chevron" size={16} color={T.inkFaint} />

@@ -1,5 +1,12 @@
 import type { EmotionKind } from '../tokens';
 
+// Returns { subject, object, possessive } for a pronouns string
+export function getPronouns(pronouns: string): { subject: string; object: string; possessive: string } {
+  if (pronouns.startsWith('he')) return { subject: 'he', object: 'him', possessive: 'his' };
+  if (pronouns.startsWith('they')) return { subject: 'they', object: 'them', possessive: 'their' };
+  return { subject: 'she', object: 'her', possessive: 'her' };
+}
+
 export const CHILD_PALETTES = [
   'linear-gradient(135deg, #f5c8c0, #e8a0d8)',
   'linear-gradient(135deg, #f8d8b0, #f0b890)',

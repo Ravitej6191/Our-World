@@ -26,7 +26,7 @@ export default function Toast({ toast, onDone }: Props) {
           exit={{ y: 30, opacity: 0 }}
           transition={{ type: 'spring', damping: 22, stiffness: 260 }}
           style={{
-            position: 'absolute', left: 20, right: 20, bottom: 100, zIndex: 160,
+            position: 'absolute', left: 20, right: 20, bottom: 'calc(max(14px, env(safe-area-inset-bottom, 14px)) + 88px)', zIndex: 160,
             padding: '12px 16px', borderRadius: 16,
             display: 'flex', gap: 10, alignItems: 'center',
             background: isError ? '#3d1a1a' : '#2a2438',

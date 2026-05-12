@@ -72,13 +72,11 @@ export default function TabBar({ active, onNav }: Props) {
               color={isActive ? T.lavenderDeep : T.inkFaint}
               strokeWidth={isActive ? 2.1 : 1.7}
             />
-            {isActive && (
-              <motion.div
-                layoutId="tabIndicator"
-                style={{ width: 4, height: 4, borderRadius: 2, background: T.lavenderDeep }}
-                transition={{ type: 'spring', damping: 20, stiffness: 300 }}
-              />
-            )}
+            <span style={{
+              fontSize: 10, fontWeight: isActive ? 600 : 400,
+              color: isActive ? T.lavenderDeep : T.inkFaint,
+              letterSpacing: '0.02em', lineHeight: 1,
+            }}>{t.label}</span>
           </motion.button>
         );
       })}

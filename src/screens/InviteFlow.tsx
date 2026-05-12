@@ -7,7 +7,7 @@ import { useHaptics } from '../hooks/useHaptics';
 
 interface Props {
   onClose: () => void;
-  onInvited: (info: { name: string }) => void;
+  onInvited: (info: { name: string; role: string }) => void;
 }
 
 type Step = 'pick' | 'compose' | 'permissions' | 'sent';
@@ -71,7 +71,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
   const handleSend = () => {
     success();
     setStep('sent');
-    setTimeout(() => { onInvited({ name }); }, 3000);
+    setTimeout(() => { onInvited({ name, role: role?.label ?? '' }); }, 3000);
   };
 
   const handleContactChange = (v: string) => {

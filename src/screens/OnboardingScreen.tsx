@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
+import { useHaptics } from '../hooks/useHaptics';
 
 interface Props { onDone: () => void; }
 
@@ -9,22 +10,25 @@ const pages = [
   {
     tone: 'lavender',
     eyebrow: 'Welcome',
-    title: ['Preserve ', 'moments,', '\nnot just photos.'],
+    title: 'Preserve ',
     titleItalic: 'moments,',
+    titleSuffix: '\nnot just photos.',
     body: "The small sounds, the first time they reached for you — the things you think you'll always remember.",
   },
   {
     tone: 'blush',
     eyebrow: 'Capture',
-    title: ['A memory\nin ', 'two taps.'],
+    title: 'A memory\nin ',
     titleItalic: 'two taps.',
+    titleSuffix: '',
     body: 'Photo, a little voice note, a line of feeling. Nothing to set up, nothing to sort. Just today, saved.',
   },
   {
     tone: 'dusk',
     eyebrow: 'Together',
-    title: ['Only the people\nwho ', 'love them.'],
+    title: 'Only the people\nwho ',
     titleItalic: 'love them.',
+    titleSuffix: '',
     body: 'Invite grandparents, a partner, a close friend. Everything stays private unless you choose to share.',
   },
 ];
@@ -96,8 +100,9 @@ function OnboardingIllo({ tone }: { tone: string }) {
 
 export default function OnboardingScreen({ onDone }: Props) {
   const [step, setStep] = useState(0);
+  const { medium } = useHaptics();
   const p = pages[step];
-  const next = () => step < pages.length - 1 ? setStep(step + 1) : onDone();
+  const next = () => { medium(); step < pages.length - 1 ? setStep(step + 1) : onDone(); };
 
   return (
     <div style={{
@@ -120,7 +125,7 @@ export default function OnboardingScreen({ onDone }: Props) {
         <div style={{ fontSize: 30, lineHeight: 1.12, color: T.ink, fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 14 }}>
           {p.title[0]}
           <em style={{ fontFamily: T.fontSerif, fontWeight: 400, fontStyle: 'italic' }}>{p.titleItalic}</em>
-          {p.title[1] && !p.title[0].includes(p.titleItalic) ? p.title[1] : ''}
+          {p.titleSuffix ?? ''}
         </div>
         <div style={{ fontSize: 15, lineHeight: 1.5, color: T.inkSoft, maxWidth: 300 }}>{p.body}</div>
       </div>
@@ -135,7 +140,7 @@ export default function OnboardingScreen({ onDone }: Props) {
             }} />
           ))}
         </div>
-        <button onClick={next} style={{
+        <motion.button whileTap={{ scale: 0.95 }} onClick={next} style={{
           height: 52, padding: '0 28px',
           background: T.ink, color: '#fff', border: 'none', borderRadius: 26,
           cursor: 'pointer', fontSize: 15, fontWeight: 500,
@@ -144,7 +149,7 @@ export default function OnboardingScreen({ onDone }: Props) {
         }}>
           {step === pages.length - 1 ? 'Create profile' : 'Continue'}
           <Icon name="chevron" size={16} color="#fff" strokeWidth={2.2} />
-        </button>
+        </motion.button>
       </div>
     </div>
   );
