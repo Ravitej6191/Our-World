@@ -62,6 +62,7 @@ export default function Icon({ name, size = 22, color = 'currentColor', strokeWi
     settings:    <>{c(12,12,3)}{p('M12 3v2M12 19v2M3 12h2M19 12h2M5.6 5.6l1.4 1.4M17 17l1.4 1.4M5.6 18.4l1.4-1.4M17 7l1.4-1.4')}</>,
     grid:        <>{p('M4 4h6v6H4zM14 4h6v6h-6zM4 14h6v6H4zM14 14h6v6h-6z')}</>,
     list:        <>{p('M8 6h12M8 12h12M8 18h12')}{c(4,6,1,{fill:color,stroke:'none'})}{c(4,12,1,{fill:color,stroke:'none'})}{c(4,18,1,{fill:color,stroke:'none'})}</>,
+    image:       <>{p('M3 7a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V7z')}{p('M3 15l5-5 4 4 3-3 5 5')}{c(15.5,10,1.5)}</>,
   };
 
   return (

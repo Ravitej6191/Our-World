@@ -290,13 +290,22 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
     try {
       const photo = await Camera.getPhoto({
         resultType: CameraResultType.DataUrl,
-        source: CameraSource.Prompt,
+        source: CameraSource.Camera,
         quality: 85,
       });
       if (photo.dataUrl) setMediaUri(photo.dataUrl);
-    } catch {
-      // User cancelled or permission denied
-    }
+    } catch { /* cancelled or permission denied */ }
+  };
+
+  const pickFromGallery = async () => {
+    try {
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Photos,
+        quality: 85,
+      });
+      if (photo.dataUrl) setMediaUri(photo.dataUrl);
+    } catch { /* cancelled or permission denied */ }
   };
 
   const captureVideo = () => {
@@ -460,58 +469,123 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
 
               {/* Media area */}
               {(media === 'photo' || media === 'video') && (
-                <motion.div
-                  whileTap={{ scale: 0.99 }}
-                  onClick={media === 'photo' ? capturePhoto : captureVideo}
-                  style={{ position: 'relative', cursor: 'pointer', borderRadius: 20, overflow: 'hidden' }}
-                >
-                  {mediaUri ? (
-                    <div style={{ position: 'relative' }}>
-                      {media === 'video' ? (
-                        <video
-                          src={mediaUri}
-                          controls
-                          playsInline
-                          style={{
-                            width: '100%', height: 240, objectFit: 'cover',
-                            borderRadius: 20, display: 'block',
-                          }}
-                        />
+                <>
+                  {media === 'photo' ? (
+                    <div style={{ position: 'relative', borderRadius: 20, overflow: 'hidden', height: 240 }}>
+                      <PhotoPlaceholder label="" tone="lavender" height={240} radius={20} />
+                      {mediaUri ? (
+                        <>
+                          <img
+                            src={mediaUri}
+                            alt="captured"
+                            style={{ position: 'absolute', inset: 0, width: '100%', height: '100%', objectFit: 'cover', display: 'block' }}
+                          />
+                          <div style={{ position: 'absolute', bottom: 10, right: 10, display: 'flex', gap: 8 }}>
+                            <motion.button
+                              whileTap={{ scale: 0.92 }}
+                              onClick={capturePhoto}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                background: 'rgba(0,0,0,0.55)', borderRadius: 20,
+                                padding: '7px 14px', border: 'none', cursor: 'pointer',
+                                WebkitTapHighlightColor: 'transparent' as any,
+                              }}
+                            >
+                              <Icon name="camera" size={14} color="#fff" />
+                              <span style={{ fontSize: 12, color: '#fff', fontWeight: 500, fontFamily: T.fontSans }}>Retake</span>
+                            </motion.button>
+                            <motion.button
+                              whileTap={{ scale: 0.92 }}
+                              onClick={pickFromGallery}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 6,
+                                background: 'rgba(0,0,0,0.55)', borderRadius: 20,
+                                padding: '7px 14px', border: 'none', cursor: 'pointer',
+                                WebkitTapHighlightColor: 'transparent' as any,
+                              }}
+                            >
+                              <Icon name="image" size={14} color="#fff" />
+                              <span style={{ fontSize: 12, color: '#fff', fontWeight: 500, fontFamily: T.fontSans }}>Gallery</span>
+                            </motion.button>
+                          </div>
+                        </>
                       ) : (
-                        <img
-                          src={mediaUri}
-                          alt="captured"
-                          style={{
-                            width: '100%', height: 240, objectFit: 'cover',
-                            borderRadius: 20, display: 'block',
-                          }}
-                        />
+                        <div style={{
+                          position: 'absolute', inset: 0,
+                          display: 'flex', flexDirection: 'column',
+                          alignItems: 'center', justifyContent: 'center', gap: 16,
+                        }}>
+                          <div style={{ fontSize: 13, color: T.inkMuted, letterSpacing: '-0.01em' }}>Add a photo</div>
+                          <div style={{ display: 'flex', gap: 12 }}>
+                            <motion.button
+                              whileTap={{ scale: 0.93 }}
+                              onClick={capturePhoto}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                background: 'rgba(255,255,255,0.88)', borderRadius: 20,
+                                padding: '10px 18px', border: 'none', cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(58,50,69,0.12)',
+                                WebkitTapHighlightColor: 'transparent' as any,
+                              }}
+                            >
+                              <Icon name="camera" size={18} color={T.ink} />
+                              <span style={{ fontSize: 13, fontWeight: 600, color: T.ink, fontFamily: T.fontSans }}>Camera</span>
+                            </motion.button>
+                            <motion.button
+                              whileTap={{ scale: 0.93 }}
+                              onClick={pickFromGallery}
+                              style={{
+                                display: 'flex', alignItems: 'center', gap: 8,
+                                background: 'rgba(255,255,255,0.88)', borderRadius: 20,
+                                padding: '10px 18px', border: 'none', cursor: 'pointer',
+                                boxShadow: '0 2px 8px rgba(58,50,69,0.12)',
+                                WebkitTapHighlightColor: 'transparent' as any,
+                              }}
+                            >
+                              <Icon name="image" size={18} color={T.ink} />
+                              <span style={{ fontSize: 13, fontWeight: 600, color: T.ink, fontFamily: T.fontSans }}>Gallery</span>
+                            </motion.button>
+                          </div>
+                        </div>
                       )}
-                      <div style={{
-                        position: 'absolute', top: 10, right: 10,
-                        background: 'rgba(0,0,0,0.5)', borderRadius: 20,
-                        padding: '4px 10px',
-                        fontSize: 11, color: '#fff', letterSpacing: '0.1em',
-                      }}>Tap to retake</div>
                     </div>
                   ) : (
-                    <PhotoPlaceholder
-                      label={media === 'video' ? 'tap to record video' : 'tap to add photo'}
-                      tone="lavender" height={240} radius={20}
-                    />
+                    <motion.div
+                      whileTap={{ scale: 0.99 }}
+                      onClick={captureVideo}
+                      style={{ position: 'relative', cursor: 'pointer', borderRadius: 20, overflow: 'hidden' }}
+                    >
+                      {mediaUri ? (
+                        <div style={{ position: 'relative' }}>
+                          <video
+                            src={mediaUri}
+                            controls
+                            playsInline
+                            style={{ width: '100%', height: 240, objectFit: 'cover', borderRadius: 20, display: 'block' }}
+                          />
+                          <div style={{
+                            position: 'absolute', top: 10, right: 10,
+                            background: 'rgba(0,0,0,0.5)', borderRadius: 20,
+                            padding: '4px 10px', fontSize: 11, color: '#fff', letterSpacing: '0.1em',
+                          }}>Tap to retake</div>
+                        </div>
+                      ) : (
+                        <PhotoPlaceholder label="tap to record video" tone="lavender" height={240} radius={20} />
+                      )}
+                      {!mediaUri && (
+                        <div style={{
+                          position: 'absolute', top: '50%', left: '50%',
+                          transform: 'translate(-50%,-50%)',
+                          width: 52, height: 52, borderRadius: 26,
+                          background: 'rgba(255,255,255,0.85)',
+                          display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        }}>
+                          <Icon name="video" size={22} color={T.ink} />
+                        </div>
+                      )}
+                    </motion.div>
                   )}
-                  {!mediaUri && (
-                    <div style={{
-                      position: 'absolute', top: '50%', left: '50%',
-                      transform: 'translate(-50%,-50%)',
-                      width: 52, height: 52, borderRadius: 26,
-                      background: 'rgba(255,255,255,0.85)',
-                      display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    }}>
-                      <Icon name={media === 'video' ? 'video' : 'camera'} size={22} color={T.ink} />
-                    </div>
-                  )}
-                </motion.div>
+                </>
               )}
               {media === 'voice' && (
                 <VoiceRecorder
