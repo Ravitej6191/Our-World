@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
@@ -6,7 +6,6 @@ import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import VoiceWaveform from '../components/VoiceWaveform';
 import { EmotionChip } from '../components/EmotionGlyph';
 import { useHaptics } from '../hooks/useHaptics';
-import { useStore } from '../store';
 import { CHILD_PALETTES } from '../shared/constants';
 import type { Memory, Child } from '../types';
 
@@ -179,55 +178,6 @@ function MilestoneCard({ memory, onOpen }: { memory: Memory; onOpen: () => void 
   );
 }
 
-// Compact grid card used in grid view
-function GridCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) {
-  const { light } = useHaptics();
-  const thumb = memory.media === 'video' ? memory.posterUri : (memory.media === 'photo' ? memory.mediaUri : undefined);
-  return (
-    <motion.button
-      whileTap={{ scale: 0.95 }}
-      onClick={() => { light(); onOpen(); }}
-      style={{
-        width: '100%', aspectRatio: '1', borderRadius: 16, overflow: 'hidden',
-        border: 'none', padding: 0, cursor: 'pointer', position: 'relative',
-        display: 'block', background: T.bgCool,
-        boxShadow: '0 1px 4px rgba(58,50,69,0.08)',
-        WebkitTapHighlightColor: 'transparent' as any,
-      }}
-    >
-      {thumb ? (
-        <img src={thumb} style={{ width: '100%', height: '100%', objectFit: 'cover', display: 'block' }} />
-      ) : memory.media === 'voice' ? (
-        <div style={{
-          width: '100%', height: '100%',
-          background: 'linear-gradient(135deg, #e0d8f5, #d8cef0)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon name="mic" size={24} color={T.lavenderDeep} strokeWidth={1.8} />
-        </div>
-      ) : (
-        <div style={{
-          width: '100%', height: '100%',
-          background: 'linear-gradient(135deg, #fdf5dc, #fae8b0)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon name="text" size={22} color={T.gold} strokeWidth={1.8} />
-        </div>
-      )}
-      {memory.milestone && (
-        <div style={{
-          position: 'absolute', top: 6, right: 6,
-          width: 20, height: 20, borderRadius: 10,
-          background: 'rgba(212,168,71,0.9)',
-          display: 'flex', alignItems: 'center', justifyContent: 'center',
-        }}>
-          <Icon name="star" size={10} color="#fff" strokeWidth={2} />
-        </div>
-      )}
-    </motion.button>
-  );
-}
-
 function SkeletonCard() {
   return (
     <div style={{
@@ -268,11 +218,9 @@ function groupMemoriesByMonth(memories: Memory[]): MemoryGroup[] {
 
 export default function TimelineScreen({ child, memories, isLoading, onOpenMemory, onOpenSearch, onGoProfile }: Props) {
   const { light } = useHaptics();
-  const showToast = useStore((s) => s.showToast);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
   const initial = (child.name || 'M')[0].toUpperCase();
   const groups = useMemo(() => groupMemoriesByMonth(memories), [memories]);
-  const [viewMode, setViewMode] = useState<'list' | 'grid'>('list');
 
   const todayShort = useMemo(() =>
     new Date().toLocaleDateString('en-US', { month: 'short', day: 'numeric' }), []);
@@ -336,15 +284,6 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
             </div>
           </div>
           <div style={{ display: 'flex', gap: 10, paddingTop: 4 }}>
-            {memories.length > 0 && (
-              <motion.button
-                whileTap={{ scale: 0.9 }}
-                onClick={() => { light(); setViewMode(v => v === 'list' ? 'grid' : 'list'); }}
-                style={chromeBtn}
-              >
-                <Icon name={viewMode === 'list' ? 'grid' : 'list'} size={18} color={T.inkSoft} />
-              </motion.button>
-            )}
             <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onOpenSearch(); }} style={chromeBtn}>
               <Icon name="search" size={18} color={T.inkSoft} />
             </motion.button>
@@ -362,7 +301,7 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
         </div>
       </div>
 
-      {/* Timeline / Grid */}
+      {/* Timeline */}
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
@@ -437,21 +376,40 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
           </div>
         ) : groups.length === 0 ? (
           <div style={{
-            paddingTop: 80, textAlign: 'center',
-            fontSize: 15, color: T.inkFaint, lineHeight: 1.6,
+            paddingTop: 60, display: 'flex', flexDirection: 'column',
+            alignItems: 'center', gap: 20,
           }}>
-            <div style={{ fontSize: 32, marginBottom: 12 }}>✦</div>
-            No memories yet.<br />Tap + to capture the first one.
-          </div>
-        ) : viewMode === 'grid' ? (
-          /* Grid view */
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 8 }}>
-            {memories.map((memory) => (
-              <GridCard key={memory.id} memory={memory} onOpen={() => onOpenMemory(memory.id)} />
-            ))}
+            <svg width="140" height="120" viewBox="0 0 140 120" fill="none">
+              <circle cx="54" cy="60" r="36" fill="url(#tl_lav)" opacity="0.6" />
+              <circle cx="86" cy="60" r="36" fill="url(#tl_blush)" opacity="0.6" />
+              <circle cx="70" cy="60" r="14" fill="#3a3245" opacity="0.18" />
+              <circle cx="70" cy="60" r="7" fill="#3a3245" opacity="0.28" />
+              <circle cx="38" cy="32" r="4" fill={T.lavenderDeep} opacity="0.5" />
+              <circle cx="102" cy="88" r="3" fill={T.blushDeep} opacity="0.45" />
+              <path d="M108 28 L111 22 L114 28 L120 31 L114 34 L111 40 L108 34 L102 31 Z"
+                fill={T.gold} opacity="0.55" />
+              <defs>
+                <radialGradient id="tl_lav" cx="35%" cy="35%">
+                  <stop offset="0%" stopColor="#e0d5f5" />
+                  <stop offset="100%" stopColor="#b8a0e0" />
+                </radialGradient>
+                <radialGradient id="tl_blush" cx="35%" cy="35%">
+                  <stop offset="0%" stopColor="#fae0dc" />
+                  <stop offset="100%" stopColor="#e8a8a0" />
+                </radialGradient>
+              </defs>
+            </svg>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                fontFamily: T.fontSerif, fontStyle: 'italic',
+                fontSize: 22, color: T.ink, marginBottom: 8, letterSpacing: '-0.01em',
+              }}>Your story starts here</div>
+              <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.6 }}>
+                Tap + to capture your first memory.
+              </div>
+            </div>
           </div>
         ) : (
-          /* List view */
           groups.map((group) => {
             const ageLabel = getAgeLabel(child.dob, group.label);
             return (

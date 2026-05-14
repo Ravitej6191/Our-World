@@ -178,7 +178,7 @@ function MilestoneTile({ milestone, onOpen, onCapture, sparkle }: {
 }
 
 export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryForMilestone }: Props) {
-  const { light } = useHaptics();
+  const { light, success } = useHaptics();
   const milestones = useStore((s) => s.milestones);
   const done = milestones.filter((m) => m.done).length;
   const total = milestones.length;
@@ -190,6 +190,7 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
   useEffect(() => {
     const newlyDone = milestones.filter((m) => m.done && !prevDoneRef.current.has(m.id));
     if (newlyDone.length > 0) {
+      success();
       if (sparkleTimerRef.current) clearTimeout(sparkleTimerRef.current);
       setSparkleId(newlyDone[0].id);
       sparkleTimerRef.current = setTimeout(() => setSparkleId(null), 1800);

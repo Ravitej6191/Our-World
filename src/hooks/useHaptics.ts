@@ -18,8 +18,9 @@ async function notify(type: 'Success' | 'Warning' | 'Error') {
 export function useHaptics() {
   const light   = useCallback(() => impact('Light'),    []);
   const medium  = useCallback(() => impact('Medium'),   []);
+  const heavy   = useCallback(() => impact('Heavy'),    []);
   const success = useCallback(() => notify('Success'),  []);
   const warning = useCallback(() => notify('Warning'),  []);
 
-  return { light, medium, success, warning };
+  return { light, medium, heavy, success, warning };
 }

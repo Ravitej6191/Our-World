@@ -210,17 +210,33 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
             {searchHistory.length === 0 && (
               <div style={{
                 display: 'flex', flexDirection: 'column', alignItems: 'center',
-                paddingTop: 60, gap: 14,
+                paddingTop: 48, gap: 18,
               }}>
-                <div style={{
-                  width: 64, height: 64, borderRadius: 32,
-                  background: T.bgCool,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center',
-                }}>
-                  <Icon name="search" size={28} color={T.inkFaint} />
-                </div>
-                <div style={{ fontSize: 15, color: T.inkMuted, textAlign: 'center', lineHeight: 1.5 }}>
-                  Search across all your memories by title, note, or feeling.
+                <svg width="120" height="110" viewBox="0 0 120 110" fill="none">
+                  <circle cx="50" cy="52" r="30" fill="url(#sr_lav)" opacity="0.55" />
+                  <circle cx="50" cy="52" r="30" stroke={T.lavenderDeep} strokeWidth="1.5" opacity="0.3" />
+                  <line x1="72" y1="74" x2="90" y2="92" stroke={T.lavenderDeep} strokeWidth="4" strokeLinecap="round" opacity="0.5" />
+                  <circle cx="50" cy="52" r="16" fill="white" opacity="0.7" />
+                  <circle cx="44" cy="46" r="3" fill={T.lavenderDeep} opacity="0.35" />
+                  <circle cx="56" cy="46" r="3" fill={T.lavenderDeep} opacity="0.35" />
+                  <path d="M44 58 Q50 63 56 58" stroke={T.lavenderDeep} strokeWidth="1.5" strokeLinecap="round" fill="none" opacity="0.5" />
+                  <circle cx="88" cy="22" r="5" fill={T.gold} opacity="0.5" />
+                  <circle cx="18" cy="30" r="3.5" fill={T.blushDeep} opacity="0.4" />
+                  <defs>
+                    <radialGradient id="sr_lav" cx="35%" cy="35%">
+                      <stop offset="0%" stopColor="#e0d5f5" />
+                      <stop offset="100%" stopColor="#c4b5e8" />
+                    </radialGradient>
+                  </defs>
+                </svg>
+                <div style={{ textAlign: 'center' }}>
+                  <div style={{
+                    fontFamily: T.fontSerif, fontStyle: 'italic',
+                    fontSize: 20, color: T.ink, marginBottom: 6, letterSpacing: '-0.01em',
+                  }}>Find any moment</div>
+                  <div style={{ fontSize: 14, color: T.inkMuted, lineHeight: 1.6 }}>
+                    Search by title, note, or feeling.
+                  </div>
                 </div>
               </div>
             )}
@@ -228,23 +244,27 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
         ) : !hasResults ? (
           <div style={{
             display: 'flex', flexDirection: 'column', alignItems: 'center',
-            justifyContent: 'center', paddingTop: 80, gap: 14,
+            justifyContent: 'center', paddingTop: 60, gap: 18,
           }}>
-            <div style={{
-              width: 64, height: 64, borderRadius: 32,
-              background: T.bgCool,
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <Icon name="search" size={28} color={T.inkFaint} />
-            </div>
-            <div style={{ fontSize: 18, fontWeight: 600, color: T.ink, textAlign: 'center' }}>
-              Nothing matched
-            </div>
-            <div style={{
-              fontSize: 14, color: T.inkMuted, textAlign: 'center', lineHeight: 1.5,
-              maxWidth: 240,
-            }}>
-              Try a different word or clear the filter to see all memories.
+            <svg width="110" height="100" viewBox="0 0 110 100" fill="none">
+              <circle cx="46" cy="46" r="28" fill={T.bgCool} />
+              <circle cx="46" cy="46" r="28" stroke={T.line} strokeWidth="2" />
+              <line x1="66" y1="66" x2="84" y2="84" stroke={T.line} strokeWidth="4" strokeLinecap="round" />
+              <path d="M34 46 Q46 36 58 46" stroke={T.inkFaint} strokeWidth="1.8" strokeLinecap="round" fill="none" />
+              <circle cx="38" cy="42" r="2.5" fill={T.inkFaint} />
+              <circle cx="54" cy="42" r="2.5" fill={T.inkFaint} />
+            </svg>
+            <div style={{ textAlign: 'center' }}>
+              <div style={{
+                fontFamily: T.fontSerif, fontStyle: 'italic',
+                fontSize: 20, color: T.ink, marginBottom: 6,
+              }}>Nothing matched</div>
+              <div style={{
+                fontSize: 14, color: T.inkMuted, textAlign: 'center', lineHeight: 1.5,
+                maxWidth: 220,
+              }}>
+                Try a different word or clear the filter.
+              </div>
             </div>
           </div>
         ) : (

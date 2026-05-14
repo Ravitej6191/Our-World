@@ -252,7 +252,10 @@ export default function App() {
   const selectedMember = members.find(m => m.id === openMemberId);
 
   const isModal = screen === 'addMemory' || screen === 'invite';
-  const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || isModal;
+  // Main tabs fade rather than slide — avoids jarring directional slide on tab switch
+  // and ensures the splash→home transition is a smooth crossfade.
+  const isMainTab = MAIN_TABS.includes(screen as any);
+  const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || isModal || isMainTab;
   const transition = { type: 'tween', ease: [0.32, 0, 0.16, 1], duration: 0.32 } as const;
 
   if (!authReady) {
