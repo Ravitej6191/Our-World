@@ -27,9 +27,13 @@ function Divider() {
 export default function MemberDetailScreen({ member, onBack, onRemove }: Props) {
   const { light, medium } = useHaptics();
   const updateMember = useStore((s) => s.updateMember);
+  const showToast = useStore((s) => s.showToast);
   const [notifyNew, setNotifyNew] = useState(member?.notifyNew ?? true);
   const [canAdd, setCanAdd] = useState(member?.canAdd ?? false);
   const [showRemoveConfirm, setShowRemoveConfirm] = useState(false);
+  const [editing, setEditing] = useState(false);
+  const [editName, setEditName] = useState(member?.name ?? '');
+  const [editRelation, setEditRelation] = useState(member?.relation ?? '');
 
   if (!member) {
     return (
@@ -42,6 +46,51 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
       </div>
     );
   }
+
+  const handleSaveEdit = () => {
+    if (!editName.trim()) return;
+    updateMember(member.id, {
+      name: editName.trim(),
+      relation: editRelation.trim(),
+      initial: (editName.trim()[0] ?? member.initial).toUpperCase(),
+    });
+    setEditing(false);
+    showToast({ text: 'Profile updated', variant: 'success' });
+  };
+
+  const handleResendInvite = async () => {
+    light();
+    const url = member.inviteUrl ?? `https://ourworld.app/invite/${member.id.slice(-8)}`;
+    const text = `${member.name} has been invited to view a private world on Our World.\n\nTap to join: ${url}`;
+    if (member.inviteContact) {
+      const isEmail = member.inviteContact.includes('@');
+      if (isEmail) {
+        const subject = encodeURIComponent(`You're invited to Our World`);
+        const body = encodeURIComponent(text);
+        window.open(`mailto:${member.inviteContact}?subject=${subject}&body=${body}`, '_blank');
+      } else {
+        window.open(`sms:${member.inviteContact}?body=${encodeURIComponent(text)}`, '_blank');
+      }
+    } else {
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: 'Join Our World', url });
+        } else {
+          await navigator.clipboard.writeText(url);
+          showToast({ text: 'Invite link copied', variant: 'success' });
+        }
+      } catch { /* cancelled */ }
+    }
+  };
+
+  const handleCopyUrl = async () => {
+    light();
+    const url = member.inviteUrl ?? `https://ourworld.app/invite/${member.id.slice(-8)}`;
+    try {
+      await navigator.clipboard.writeText(url);
+      showToast({ text: 'Link copied to clipboard', variant: 'success' });
+    } catch { /* clipboard unavailable */ }
+  };
 
   return (
     <motion.div
@@ -62,12 +111,16 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
         <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
           <Icon name="back" size={20} color={T.ink} />
         </motion.button>
+        <motion.button
+          whileTap={{ scale: 0.9 }}
+          onClick={() => { light(); setEditing((e) => !e); setEditName(member.name); setEditRelation(member.relation); }}
+          style={chromeBtn}
+        >
+          <Icon name={editing ? 'close' : 'edit'} size={18} color={T.ink} />
+        </motion.button>
       </div>
 
-      <div style={{
-        flex: 1, overflowY: 'auto',
-        scrollbarWidth: 'none',
-      } as any}>
+      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' } as any}>
         {/* Hero section */}
         <div style={{
           paddingTop: `calc(${T.safeTop} + 56px)` as any, paddingBottom: 28,
@@ -84,22 +137,145 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
             <span style={{
               fontFamily: T.fontSerif, fontStyle: 'italic',
               fontSize: 40, color: '#fff', fontWeight: 400,
-            }}>{member.initial}</span>
+            }}>{editing ? (editName[0]?.toUpperCase() ?? member.initial) : member.initial}</span>
           </div>
 
-          <div style={{
-            fontFamily: T.fontSerif, fontStyle: 'italic',
-            fontSize: 28, color: T.ink, letterSpacing: '-0.02em',
-            marginBottom: 6,
-          }}>{member.name}</div>
+          <AnimatePresence mode="wait">
+            {editing ? (
+              <motion.div
+                key="edit"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                style={{ width: '100%', padding: '0 32px', display: 'flex', flexDirection: 'column', gap: 12 }}
+              >
+                <input
+                  value={editName}
+                  onChange={(e) => setEditName(e.target.value)}
+                  placeholder="Name"
+                  style={{
+                    border: 'none', borderBottom: `2px solid ${T.lavenderDeep}`,
+                    background: 'transparent', outline: 'none', textAlign: 'center',
+                    fontFamily: T.fontSerif, fontStyle: 'italic',
+                    fontSize: 26, color: T.ink, paddingBottom: 6,
+                    width: '100%',
+                  } as any}
+                />
+                <input
+                  value={editRelation}
+                  onChange={(e) => setEditRelation(e.target.value)}
+                  placeholder="Relation (e.g. Grandparent)"
+                  style={{
+                    border: 'none', borderBottom: `1.5px solid ${T.lineSoft}`,
+                    background: 'transparent', outline: 'none', textAlign: 'center',
+                    fontSize: 14, color: T.inkSoft, paddingBottom: 6, fontFamily: T.fontSans,
+                    width: '100%',
+                  } as any}
+                />
+                <motion.button
+                  whileTap={{ scale: 0.97 }}
+                  onClick={handleSaveEdit}
+                  disabled={!editName.trim()}
+                  style={{
+                    marginTop: 4, height: 44, borderRadius: 14,
+                    background: editName.trim() ? T.lavenderDeep : T.lineSoft,
+                    border: 'none', cursor: editName.trim() ? 'pointer' : 'default',
+                    color: editName.trim() ? '#fff' : T.inkFaint,
+                    fontSize: 14, fontWeight: 600, fontFamily: T.fontSans,
+                    WebkitTapHighlightColor: 'transparent' as any,
+                  }}
+                >
+                  Save changes
+                </motion.button>
+              </motion.div>
+            ) : (
+              <motion.div
+                key="view"
+                initial={{ opacity: 0, y: 8 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -8 }}
+                style={{ textAlign: 'center' }}
+              >
+                <div style={{
+                  fontFamily: T.fontSerif, fontStyle: 'italic',
+                  fontSize: 28, color: T.ink, letterSpacing: '-0.02em',
+                  marginBottom: 6,
+                }}>{member.name}</div>
+                <div style={{ fontSize: 14, color: T.inkMuted }}>
+                  {member.relation} · {member.joined}
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
 
-          <div style={{ fontSize: 14, color: T.inkMuted }}>
-            {member.relation} · {member.joined}
+        {/* Invite link section */}
+        <div style={{ padding: '0 20px 16px' }}>
+          <div style={{
+            fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
+            color: T.inkMuted, marginBottom: 12, fontWeight: 500,
+          }}>Invite link</div>
+          <div style={{
+            background: T.card, borderRadius: 18, overflow: 'hidden',
+            boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
+          }}>
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={handleCopyUrl}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'none', border: 'none',
+                cursor: 'pointer', textAlign: 'left',
+                WebkitTapHighlightColor: 'transparent' as any,
+              }}
+            >
+              <div style={{
+                width: 36, height: 36, borderRadius: 10, background: T.bgCool,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Icon name="link" size={16} color={T.lavenderDeep} />
+              </div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 2 }}>Private link · tap to copy</div>
+                <div style={{
+                  fontFamily: T.fontMono, fontSize: 12, color: T.ink,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>
+                  {member.inviteUrl ?? `ourworld.app/invite/${member.id.slice(-8)}`}
+                </div>
+              </div>
+              <Icon name="download" size={14} color={T.inkFaint} strokeWidth={2} />
+            </motion.button>
+            <Divider />
+            <motion.button
+              whileTap={{ scale: 0.98 }}
+              onClick={handleResendInvite}
+              style={{
+                width: '100%', display: 'flex', alignItems: 'center', gap: 12,
+                padding: '14px 16px', background: 'none', border: 'none',
+                cursor: 'pointer', textAlign: 'left',
+                WebkitTapHighlightColor: 'transparent' as any,
+              }}
+            >
+              <div style={{
+                width: 36, height: 36, borderRadius: 10, background: T.bgCool,
+                display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+              }}>
+                <Icon name="mail" size={16} color={T.lavenderDeep} />
+              </div>
+              <div style={{ flex: 1 }}>
+                <div style={{ fontSize: 14.5, fontWeight: 500, color: T.ink }}>Resend invite</div>
+                <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 1 }}>
+                  {member.inviteContact ? `Send to ${member.inviteContact}` : 'Share the invite link again'}
+                </div>
+              </div>
+              <Icon name="chevron" size={14} color={T.inkFaint} />
+            </motion.button>
           </div>
         </div>
 
         {/* Permissions section */}
-        <div style={{ padding: '0 20px 20px' }}>
+        <div style={{ padding: '0 20px 16px' }}>
           <div style={{
             fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase',
             color: T.inkMuted, marginBottom: 12, fontWeight: 500,

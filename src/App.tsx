@@ -23,7 +23,7 @@ import MemberDetailScreen from './screens/MemberDetailScreen';
 import InviteFlow from './screens/InviteFlow';
 import ProfileScreen from './screens/ProfileScreen';
 import SettingsScreen from './screens/SettingsScreen';
-import WeeklyDigestScreen from './screens/WeeklyDigestScreen';
+import KeepsakeBookScreen from './screens/KeepsakeBookScreen';
 import TabBar from './components/TabBar';
 import Toast from './components/Toast';
 import type { ChildFlowMode } from './screens/AddChildFlow';
@@ -33,7 +33,7 @@ type Screen =
   | 'home' | 'milestones' | 'milestoneDetail'
   | 'search' | 'addMemory' | 'memoryDetail'
   | 'family' | 'memberDetail' | 'invite'
-  | 'profile' | 'settings' | 'weeklyDigest';
+  | 'profile' | 'settings' | 'keepsake';
 
 const MAIN_TABS: Screen[] = ['home', 'milestones', 'family', 'profile'];
 
@@ -252,8 +252,6 @@ export default function App() {
   const selectedMember = members.find(m => m.id === openMemberId);
 
   const isModal = screen === 'addMemory' || screen === 'invite';
-  // Main tabs fade rather than slide — avoids jarring directional slide on tab switch
-  // and ensures the splash→home transition is a smooth crossfade.
   const isMainTab = MAIN_TABS.includes(screen as any);
   const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || isModal || isMainTab;
   const transition = { type: 'tween', ease: [0.32, 0, 0.16, 1], duration: 0.32 } as const;
@@ -387,7 +385,7 @@ export default function App() {
           {screen === 'invite' && (
             <InviteFlow
               onClose={pop}
-              onInvited={({ name, role }) => {
+              onInvited={({ name, role, inviteUrl, inviteContact }) => {
                 const initial = (name || role || '?')[0].toUpperCase();
                 const gradients = [
                   'linear-gradient(135deg, #b8d5f0, #7aa8d8)',
@@ -404,6 +402,8 @@ export default function App() {
                   color: '#93b8e0',
                   gradient: gradients[Math.floor(Math.random() * gradients.length)],
                   joined: `Joined ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+                  inviteUrl,
+                  inviteContact,
                 });
                 pop();
                 showToast({ text: `${name || 'Invite'} sent!`, variant: 'success' });
@@ -419,9 +419,7 @@ export default function App() {
               onBack={() => { setActiveTab('home'); jumpTab('home'); }}
               onEdit={() => { setChildFlowMode('edit'); push('addChild'); }}
               onOpenSettings={() => push('settings')}
-              onOpenMilestones={() => { setActiveTab('milestones'); jumpTab('milestones'); }}
-              onOpenFamily={() => { setActiveTab('family'); jumpTab('family'); }}
-              onOpenDigest={() => push('weeklyDigest')}
+              onOpenKeepsake={() => push('keepsake')}
               onSwitchChild={() => push('switchChild')}
               onAddChild={() => { setChildFlowMode('add'); push('addChild'); }}
             />
@@ -431,8 +429,8 @@ export default function App() {
             <SettingsScreen onBack={pop} />
           )}
 
-          {screen === 'weeklyDigest' && (
-            <WeeklyDigestScreen
+          {screen === 'keepsake' && (
+            <KeepsakeBookScreen
               memories={memories}
               childName={child.name}
               onBack={pop}

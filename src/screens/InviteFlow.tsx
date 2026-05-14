@@ -7,7 +7,7 @@ import { useHaptics } from '../hooks/useHaptics';
 
 interface Props {
   onClose: () => void;
-  onInvited: (info: { name: string; role: string }) => void;
+  onInvited: (info: { name: string; role: string; inviteUrl: string; inviteContact: string }) => void;
 }
 
 type Step = 'pick' | 'compose' | 'permissions' | 'sent';
@@ -67,23 +67,38 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
   const [canReact, setCanReact] = useState(true);
   const [canAdd, setCanAdd] = useState(false);
   const [notifyNew, setNotifyNew] = useState(true);
+  const [generatedUrl, setGeneratedUrl] = useState('');
   const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 
   const handleSend = async () => {
     success();
+    const token = Math.random().toString(36).slice(2, 10);
+    const inviteUrl = `https://ourworld.app/invite/${token}`;
+    setGeneratedUrl(inviteUrl);
     setStep('sent');
-    const shareUrl = `https://ourworld.app/invite/${Math.random().toString(36).slice(2, 9)}`;
-    const shareText = `${name || 'Someone'} has invited you to view a special world on Our World. Tap the link to join.`;
-    try {
-      if (navigator.share) {
-        await navigator.share({ title: 'Join Our World', text: shareText, url: shareUrl });
-      }
-    } catch {
-      // User cancelled or share not available — that's fine
+
+    const shareText = `${name || 'Someone special'} has invited you to view a private world on Our World.\n\nTap to join: ${inviteUrl}`;
+
+    if (contactMode === 'email' && contact.trim()) {
+      const subject = encodeURIComponent(`You're invited to Our World`);
+      const body = encodeURIComponent(shareText);
+      window.open(`mailto:${contact.trim()}?subject=${subject}&body=${body}`, '_blank');
+    } else if (contactMode === 'text' && contact.trim()) {
+      const body = encodeURIComponent(shareText);
+      window.open(`sms:${contact.trim()}?body=${body}`, '_blank');
+    } else {
+      try {
+        if (navigator.share) {
+          await navigator.share({ title: 'Join Our World', text: shareText, url: inviteUrl });
+        }
+      } catch { /* cancelled */ }
     }
-    closeTimerRef.current = setTimeout(() => { onInvited({ name, role: role?.label ?? '' }); }, 3000);
+
+    closeTimerRef.current = setTimeout(() => {
+      onInvited({ name, role: role?.label ?? '', inviteUrl, inviteContact: contact.trim() });
+    }, 3000);
   };
 
   const handleContactChange = (v: string) => {
@@ -380,12 +395,11 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
               whileTap={{ scale: 0.97 }}
               onClick={async () => {
                 light();
-                const shareUrl = `https://ourworld.app/invite/join`;
                 try {
                   if (navigator.share) {
-                    await navigator.share({ title: 'Join Our World', url: shareUrl });
+                    await navigator.share({ title: 'Join Our World', url: generatedUrl });
                   } else {
-                    await navigator.clipboard.writeText(shareUrl);
+                    await navigator.clipboard.writeText(generatedUrl);
                   }
                 } catch { /* cancelled */ }
               }}
@@ -403,9 +417,12 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
               }}>
                 <Icon name="link" size={16} color={T.lavenderDeep} />
               </div>
-              <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 2 }}>Private link · tap to share</div>
-                <div style={{ fontFamily: T.fontMono, fontSize: 13, color: T.ink, letterSpacing: '0.02em' }}>ourworld.app/invite</div>
+              <div style={{ flex: 1, minWidth: 0 }}>
+                <div style={{ fontSize: 11, color: T.inkMuted, marginBottom: 2 }}>Private link · tap to copy or share</div>
+                <div style={{
+                  fontFamily: T.fontMono, fontSize: 12, color: T.ink,
+                  overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap',
+                }}>{generatedUrl || 'ourworld.app/invite/…'}</div>
               </div>
               <Icon name="share" size={16} color={T.lavenderDeep} />
             </motion.button>

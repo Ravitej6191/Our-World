@@ -40,6 +40,8 @@ export interface FamilyMember {
   joined: string;
   notifyNew?: boolean;
   canAdd?: boolean;
+  inviteUrl?: string;
+  inviteContact?: string;
 }
 
 export interface Child {

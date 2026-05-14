@@ -78,6 +78,7 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const [recording, setRecording] = useState(false);
   const [recorded, setRecorded] = useState(false);
   const [seconds, setSeconds] = useState(0);
+  const secondsRef = useRef(0);
   const [audioUri, setAudioUri] = useState<string | null>(null);
   const [playing, setPlaying] = useState(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -92,16 +93,25 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const startRecording = async () => {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-      const mr = new MediaRecorder(stream);
+      const mimeType = MediaRecorder.isTypeSupported('audio/webm;codecs=opus')
+        ? 'audio/webm;codecs=opus'
+        : MediaRecorder.isTypeSupported('audio/webm')
+        ? 'audio/webm'
+        : MediaRecorder.isTypeSupported('audio/mp4')
+        ? 'audio/mp4'
+        : '';
+      const mr = new MediaRecorder(stream, mimeType ? { mimeType } : undefined);
       chunksRef.current = [];
       transcriptRef.current = '';
+      secondsRef.current = 0;
       mr.ondataavailable = (e) => { if (e.data.size > 0) chunksRef.current.push(e.data); };
       mr.onstop = () => {
         stream.getTracks().forEach((t) => t.stop());
         recognitionRef.current?.stop();
         if (maxTimerRef.current) clearTimeout(maxTimerRef.current);
-        const blob = new Blob(chunksRef.current, { type: 'audio/webm' });
-        const dur = `${String(Math.floor(seconds / 60)).padStart(2, '0')}:${String(seconds % 60).padStart(2, '0')}`;
+        const finalSeconds = secondsRef.current;
+        const blob = new Blob(chunksRef.current, { type: mimeType || 'audio/webm' });
+        const dur = `${String(Math.floor(finalSeconds / 60)).padStart(2, '0')}:${String(finalSeconds % 60).padStart(2, '0')}`;
         const reader = new FileReader();
         reader.onloadend = () => {
           const dataUri = reader.result as string;
@@ -114,7 +124,10 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
       mr.start();
       mediaRef.current = mr;
       setRecording(true);
-      intervalRef.current = setInterval(() => setSeconds((s) => s + 1), 1000);
+      intervalRef.current = setInterval(() => {
+        secondsRef.current += 1;
+        setSeconds(secondsRef.current);
+      }, 1000);
       maxTimerRef.current = setTimeout(() => stopRecording(), MAX_RECORD_SECONDS * 1000);
 
       // Live transcription via Web Speech API (best-effort)
@@ -171,6 +184,7 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
     if (audioRef.current) { audioRef.current.pause(); audioRef.current = null; }
     setAudioUri(null);
     setRecorded(false);
+    secondsRef.current = 0;
     setSeconds(0);
     setPlaying(false);
   };

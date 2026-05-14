@@ -1,0 +1,17 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" fill="#faf8f7"/>
+  <defs>
+    <radialGradient id="lav" cx="35%" cy="35%">
+      <stop offset="0%" stop-color="#e0d5f5"/>
+      <stop offset="100%" stop-color="#b8a0e0"/>
+    </radialGradient>
+    <radialGradient id="bls" cx="35%" cy="35%">
+      <stop offset="0%" stop-color="#fae0dc"/>
+      <stop offset="100%" stop-color="#e8a8a0"/>
+    </radialGradient>
+  </defs>
+  <!-- Safe zone: 75% of canvas = 768px, centered, so start at 128 -->
+  <circle cx="420" cy="512" r="276" fill="url(#lav)" opacity="0.92"/>
+  <circle cx="604" cy="512" r="276" fill="url(#bls)" opacity="0.92"/>
+  <circle cx="512" cy="512" r="104" fill="#3a3245" opacity="0.9"/>
+</svg>

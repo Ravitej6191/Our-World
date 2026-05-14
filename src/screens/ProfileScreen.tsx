@@ -1,5 +1,7 @@
 import React from 'react';
-import { motion } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
+import { signOut } from 'firebase/auth';
+import { auth } from '../firebase';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { useStore } from '../store';
@@ -13,9 +15,7 @@ interface Props {
   onBack: () => void;
   onEdit: () => void;
   onOpenSettings: () => void;
-  onOpenMilestones: () => void;
-  onOpenFamily: () => void;
-  onOpenDigest: () => void;
+  onOpenKeepsake: () => void;
   onSwitchChild: () => void;
   onAddChild: () => void;
   memoriesCount: number;
@@ -53,12 +53,11 @@ const chromeBtn: React.CSSProperties = {
 };
 
 export default function ProfileScreen({
-  child, children, onBack, onEdit, onOpenSettings, onOpenMilestones,
-  onOpenFamily, onOpenDigest, onSwitchChild, onAddChild, memoriesCount,
+  child, children, onBack, onEdit, onOpenSettings,
+  onOpenKeepsake, onSwitchChild, onAddChild, memoriesCount,
 }: Props) {
-  const { light } = useHaptics();
+  const { light, medium } = useHaptics();
   const milestones = useStore((s) => s.milestones);
-  const members = useStore((s) => s.members);
   const showToast = useStore((s) => s.showToast);
   const doneMilestones = milestones.filter((m) => m.done);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
@@ -68,14 +67,29 @@ export default function ProfileScreen({
   const currentYear = new Date().getFullYear();
   const hasMultipleChildren = children.length > 1;
 
+  const handleSignOut = async () => {
+    try {
+      await signOut(auth);
+    } catch {
+      showToast({ text: 'Could not sign out. Try again.', variant: 'error' });
+    }
+  };
+
   const PROFILE_ROWS = [
-    { icon: 'users',    label: 'Family & sharing',    sub: `${members.length} ${members.length === 1 ? 'person' : 'people'}`, action: onOpenFamily },
-    { icon: 'star',     label: 'Little firsts',       sub: `${doneMilestones.length} reached`,    action: onOpenMilestones },
-    { icon: 'calendar', label: 'Weekly digest',       sub: 'Memories & feelings this week',       action: onOpenDigest },
-    { icon: 'heart',    label: 'Yearly keepsake book',sub: `Create your ${currentYear} book`,     action: () => showToast({ text: 'Keepsake books coming soon', variant: 'success' }) },
-    { icon: 'sun',      label: 'Settings',            sub: 'Privacy, backup, account',            action: onOpenSettings },
     {
-      icon: 'plus',
+      icon: 'heart',
+      label: 'Yearly keepsake book',
+      sub: `Your ${currentYear} in memories`,
+      action: onOpenKeepsake,
+    },
+    {
+      icon: 'sun',
+      label: 'Settings',
+      sub: 'Privacy, backup, account',
+      action: onOpenSettings,
+    },
+    {
+      icon: hasMultipleChildren ? 'users' : 'plus',
       label: hasMultipleChildren ? 'Switch child' : 'Add another child',
       sub: hasMultipleChildren ? `${children.length} profiles` : 'Set up another profile',
       action: hasMultipleChildren ? onSwitchChild : onAddChild,
@@ -218,6 +232,25 @@ export default function ProfileScreen({
             </React.Fragment>
           ))}
         </div>
+      </div>
+
+      {/* Sign Out */}
+      <div style={{ padding: '16px 20px 0', position: 'relative', zIndex: 1 }}>
+        <motion.button
+          whileTap={{ scale: 0.97 }}
+          onClick={() => { medium(); handleSignOut(); }}
+          style={{
+            width: '100%', height: 50, borderRadius: 16,
+            background: 'transparent', border: `1.5px solid ${T.line}`,
+            color: T.inkSoft, fontSize: 14.5, fontWeight: 500,
+            fontFamily: T.fontSans, cursor: 'pointer',
+            display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
+            WebkitTapHighlightColor: 'transparent' as any,
+          }}
+        >
+          <Icon name="logout" size={17} color={T.inkSoft} />
+          Sign out
+        </motion.button>
       </div>
 
       {/* Quote */}

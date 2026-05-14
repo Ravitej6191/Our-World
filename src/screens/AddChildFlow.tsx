@@ -23,6 +23,8 @@ const PALETTES = [
   { key: 'sage',    label: 'Sage',   c1: '#c0d8c0', c2: '#98c8a0' },
 ];
 
+// Only used for confirmation avatar display; user no longer picks shade manually
+
 const PRONOUNS_OPTIONS = [
   { label: 'she / her',   value: 'she / her'   },
   { label: 'he / him',    value: 'he / him'    },
@@ -87,13 +89,13 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
   const [dobError, setDobError] = useState<string | null>(null);
   const [pronouns, setPronouns] = useState(initialChild?.pronouns ?? 'she / her');
   const [colorIdx, setColorIdx] = useState(initialChild?.colorIdx ?? 0);
-  const total = 4;
+  const total = 3;
 
   const dobFilled = dob.d && dob.m && dob.y;
   const canProceed =
     (step === 0 && name.trim().length > 0) ||
     (step === 1 && !!dobFilled && !dobError) ||
-    step === 2 || step === 3;
+    step === 2;
 
   const next = () => {
     if (step === 1) {
@@ -105,6 +107,8 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
     if (step < total - 1) setStep(step + 1);
     else onDone({ name: name.trim(), pronouns, colorIdx, dob });
   };
+
+  // colorIdx is kept in state so existing profiles preserve their color on edit
   const prev = () => { light(); step > 0 ? setStep(step - 1) : onBack(); };
 
   const pal = PALETTES[colorIdx];
@@ -251,51 +255,6 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
         )}
 
         {step === 2 && (
-          <>
-            <div style={{
-              fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase',
-              color: T.inkMuted, marginBottom: 14,
-            }}>Their colour</div>
-            <div style={{
-              fontSize: 28, lineHeight: 1.15, letterSpacing: '-0.02em', fontWeight: 500,
-              display: 'flex', alignItems: 'baseline', gap: 8, flexWrap: 'wrap',
-            }}>
-              <span>Pick a shade</span>
-              <em style={{ fontFamily: T.fontSerif, fontStyle: 'italic' }}>for {name || 'them'}.</em>
-            </div>
-            <div style={{ marginTop: 32, display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: 14 }}>
-              {PALETTES.map((p, i) => (
-                <motion.button
-                  key={p.key}
-                  whileTap={{ scale: 0.92 }}
-                  onClick={() => { light(); setColorIdx(i); }}
-                  style={{
-                    border: 'none', background: 'transparent', cursor: 'pointer', padding: 0,
-                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 8,
-                  }}
-                >
-                  <div style={{
-                    width: 72, height: 72, borderRadius: 36,
-                    background: `linear-gradient(135deg, ${p.c1}, ${p.c2})`,
-                    boxShadow: colorIdx === i
-                      ? `0 0 0 3px ${T.bg}, 0 0 0 5px ${T.lavenderDeep}`
-                      : '0 4px 12px rgba(139,111,199,0.15)',
-                    transition: 'box-shadow 0.15s',
-                  }} />
-                  <div style={{
-                    fontSize: 11.5,
-                    fontWeight: colorIdx === i ? 600 : 500,
-                    color: colorIdx === i ? T.ink : T.inkSoft,
-                  }}>
-                    {p.label}
-                  </div>
-                </motion.button>
-              ))}
-            </div>
-          </>
-        )}
-
-        {step === 3 && (
           <div style={{
             flex: 1, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', textAlign: 'center', marginTop: -40,
@@ -350,7 +309,7 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
           }}
         >
           {ctaLabel()}
-          {step < 3 && <Icon name="chevron" size={16} color={canProceed ? '#fff' : T.inkMuted} strokeWidth={2.2} />}
+          {step < 2 && <Icon name="chevron" size={16} color={canProceed ? '#fff' : T.inkMuted} strokeWidth={2.2} />}
         </motion.button>
       </div>
     </div>
