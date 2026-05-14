@@ -188,9 +188,9 @@ function GridCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) {
       whileTap={{ scale: 0.95 }}
       onClick={() => { light(); onOpen(); }}
       style={{
-        aspectRatio: '1', borderRadius: 16, overflow: 'hidden',
+        width: '100%', aspectRatio: '1', borderRadius: 16, overflow: 'hidden',
         border: 'none', padding: 0, cursor: 'pointer', position: 'relative',
-        background: T.bgCool,
+        display: 'block', background: T.bgCool,
         boxShadow: '0 1px 4px rgba(58,50,69,0.08)',
         WebkitTapHighlightColor: 'transparent' as any,
       }}
