@@ -20,7 +20,8 @@ export default function Toggle({ value, onChange, disabled = false }: Props) {
         display: 'flex', alignItems: 'center',
         justifyContent: value ? 'flex-end' : 'flex-start',
         flexShrink: 0,
-      }}
+        WebkitTapHighlightColor: 'transparent',
+      } as React.CSSProperties}
     >
       <div style={{
         width: 22, height: 22, borderRadius: 11, background: '#fff',

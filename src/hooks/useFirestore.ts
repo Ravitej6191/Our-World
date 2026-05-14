@@ -12,21 +12,13 @@ export function useFirestoreSync() {
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const userIdRef = useRef<string | null>(null);
 
-  // Track auth state so syncs use the right user ID
-  useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (user) => {
-      userIdRef.current = user?.uid ?? null;
-    });
-    return unsub;
-  }, []);
-
-  // Load all data from Firestore once on mount
+  // Auth listener drives the initial load — ensures we don't race with Firebase
+  // resolving its persisted auth state on first mount.
   useEffect(() => {
     let cancelled = false;
 
-    async function loadFromFirestore() {
-      const userId = userIdRef.current ?? auth.currentUser?.uid;
-      if (!userId) return;
+    async function loadFromFirestore(userId: string) {
+      if (initialLoadDone.current) return;
       useStore.setState({ isLoading: true });
       try {
         const [memoriesSnap, milestonesSnap, membersSnap, childSnap, settingsSnap] =
@@ -64,13 +56,28 @@ export function useFirestoreSync() {
       } catch {
         // Firestore not configured yet — use local state
       } finally {
-        initialLoadDone.current = true;
-        useStore.setState({ isLoading: false });
+        if (!cancelled) {
+          initialLoadDone.current = true;
+          useStore.setState({ isLoading: false });
+        }
       }
     }
 
-    loadFromFirestore();
-    return () => { cancelled = true; };
+    const unsub = onAuthStateChanged(auth, (user) => {
+      userIdRef.current = user?.uid ?? null;
+      if (user && !initialLoadDone.current) {
+        loadFromFirestore(user.uid);
+      } else if (!user) {
+        // Signed out — mark load as done so debounce writes don't accumulate
+        initialLoadDone.current = true;
+        useStore.setState({ isLoading: false });
+      }
+    });
+
+    return () => {
+      cancelled = true;
+      unsub();
+    };
   }, []);
 
   // Debounced write-back whenever store changes
@@ -95,6 +102,8 @@ async function syncToFirestore(store: ReturnType<typeof useStore.getState>, user
   try {
     await setDoc(doc(db, 'users', userId, 'child', 'profile'), store.child);
     await setDoc(doc(db, 'users', userId, 'settings', 'main'), store.settings);
+    // Only sync memories without large binary payloads — blob: and data: URIs
+    // (photos, videos, voice) exceed Firestore's 1MB document limit.
     await Promise.all(
       store.memories
         .filter((m) => !m.mediaUri?.startsWith('blob:') && !m.mediaUri?.startsWith('data:'))

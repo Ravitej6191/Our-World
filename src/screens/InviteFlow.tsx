@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
@@ -63,10 +63,13 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
   const [name, setName] = useState('');
   const [contact, setContact] = useState('');
   const [contactError, setContactError] = useState<string | null>(null);
-  const [canView] = useState(true);
+  const canView = true;
   const [canReact, setCanReact] = useState(true);
   const [canAdd, setCanAdd] = useState(false);
   const [notifyNew, setNotifyNew] = useState(true);
+  const closeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => () => { if (closeTimerRef.current) clearTimeout(closeTimerRef.current); }, []);
 
   const handleSend = async () => {
     success();
@@ -80,7 +83,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
     } catch {
       // User cancelled or share not available — that's fine
     }
-    setTimeout(() => { onInvited({ name, role: role?.label ?? '' }); }, 3000);
+    closeTimerRef.current = setTimeout(() => { onInvited({ name, role: role?.label ?? '' }); }, 3000);
   };
 
   const handleContactChange = (v: string) => {

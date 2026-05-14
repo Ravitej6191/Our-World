@@ -8,6 +8,7 @@ import { EmotionChip } from '../components/EmotionGlyph';
 import EmotionGlyph from '../components/EmotionGlyph';
 import VoiceWaveform from '../components/VoiceWaveform';
 import { useHaptics } from '../hooks/useHaptics';
+import { useStore } from '../store';
 import type { Memory } from '../types';
 
 interface Props {
@@ -28,6 +29,7 @@ const EMOTIONS_LIST = Object.entries(EMOTIONS) as [EmotionKind, (typeof EMOTIONS
 
 export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }: Props) {
   const { light, medium } = useHaptics();
+  const showToast = useStore((s) => s.showToast);
   const [editing, setEditing] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [editTitle, setEditTitle] = useState('');
@@ -179,7 +181,10 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                 if (navigator.share) {
                   try { await navigator.share({ title: memory.title, text }); } catch { /* cancelled */ }
                 } else {
-                  await navigator.clipboard?.writeText(text);
+                  try {
+                    await navigator.clipboard?.writeText(text);
+                    showToast({ text: 'Copied to clipboard', variant: 'success' });
+                  } catch { /* clipboard unavailable */ }
                 }
               }}
               style={chromeBtn}

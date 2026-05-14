@@ -5,6 +5,7 @@ import type { EmotionKind } from '../tokens';
 import Icon from '../components/Icon';
 import { EmotionChip } from '../components/EmotionGlyph';
 import { useHaptics } from '../hooks/useHaptics';
+import { useStore } from '../store';
 import type { Memory } from '../types';
 
 interface Props {
@@ -38,6 +39,7 @@ function StatPill({ value, label, color }: { value: string | number; label: stri
 
 export default function WeeklyDigestScreen({ memories, childName, onBack }: Props) {
   const { light } = useHaptics();
+  const showToast = useStore((s) => s.showToast);
 
   const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
   const thirtyDaysAgo = Date.now() - 30 * 24 * 60 * 60 * 1000;
@@ -76,7 +78,10 @@ export default function WeeklyDigestScreen({ memories, childName, onBack }: Prop
     if (navigator.share) {
       try { await navigator.share({ title: "This week in Our World", text }); } catch { /* cancelled */ }
     } else {
-      await navigator.clipboard?.writeText(text);
+      try {
+        await navigator.clipboard?.writeText(text);
+        showToast({ text: 'Copied to clipboard', variant: 'success' });
+      } catch { /* clipboard unavailable */ }
     }
   };
 

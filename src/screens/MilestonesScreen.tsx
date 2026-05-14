@@ -185,15 +185,19 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
 
   const prevDoneRef = useRef<Set<string>>(new Set(milestones.filter((m) => m.done).map((m) => m.id)));
   const [sparkleId, setSparkleId] = useState<string | null>(null);
+  const sparkleTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => {
     const newlyDone = milestones.filter((m) => m.done && !prevDoneRef.current.has(m.id));
     if (newlyDone.length > 0) {
+      if (sparkleTimerRef.current) clearTimeout(sparkleTimerRef.current);
       setSparkleId(newlyDone[0].id);
-      setTimeout(() => setSparkleId(null), 1800);
+      sparkleTimerRef.current = setTimeout(() => setSparkleId(null), 1800);
     }
     prevDoneRef.current = new Set(milestones.filter((m) => m.done).map((m) => m.id));
   }, [milestones]);
+
+  useEffect(() => () => { if (sparkleTimerRef.current) clearTimeout(sparkleTimerRef.current); }, []);
 
   return (
     <motion.div

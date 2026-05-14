@@ -120,6 +120,14 @@ export default function App() {
 
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
+  // Navigate to splash whenever the user signs out
+  useEffect(() => {
+    if (authReady && !isAuthed && screen !== 'splash') {
+      replace('splash');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isAuthed, authReady]);
+
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
   const [openMilestoneId, setOpenMilestoneId] = useState<string | null>(null);

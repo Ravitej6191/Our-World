@@ -93,7 +93,10 @@ export const useStore = create<AppState>()(
           return { child: updated, children };
         }),
 
-      addMemory: (m) => set((s) => ({ memories: [m, ...s.memories] })),
+      addMemory: (m) => set((s) => {
+        if (s.memories.some((x) => x.id === m.id)) return s;
+        return { memories: [m, ...s.memories] };
+      }),
       updateMemory: (m) => set((s) => ({ memories: s.memories.map((x) => (x.id === m.id ? m : x)) })),
       deleteMemory: (id) => set((s) => ({ memories: s.memories.filter((x) => x.id !== id) })),
       markMilestoneDone: (id, date, tone, emotion) =>
