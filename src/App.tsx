@@ -1,6 +1,7 @@
 import React, { useState, useCallback, useEffect } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { App as CapApp } from '@capacitor/app';
+import { SplashScreen as CapSplash } from '@capacitor/splash-screen';
 import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { useStore } from './store';
@@ -38,14 +39,14 @@ type Screen =
 const MAIN_TABS: Screen[] = ['home', 'milestones', 'family', 'profile'];
 
 const slide = {
-  enter: (d: number) => ({ x: d >= 0 ? '100%' : '-100%', opacity: 0 }),
-  center: { x: 0, opacity: 1 },
-  exit:  (d: number) => ({ x: d >= 0 ? '-100%' : '100%', opacity: 0 }),
+  enter: (d: number) => ({ x: d >= 0 ? '100%' : '-100%' }),
+  center: { x: 0 },
+  exit:  (d: number) => ({ x: d >= 0 ? '-100%' : '100%' }),
 };
 const fade = {
-  enter:  { opacity: 0, y: 10 },
-  center: { opacity: 1, y: 0 },
-  exit:   { opacity: 0, y: -6 },
+  enter:  { opacity: 0 },
+  center: { opacity: 1 },
+  exit:   { opacity: 0 },
 };
 
 function useNav(initial: Screen) {
@@ -109,6 +110,13 @@ export default function App() {
     });
     return unsub;
   }, []);
+
+  // Fade out native splash once auth state is determined
+  useEffect(() => {
+    if (authReady) {
+      CapSplash.hide({ fadeOutDuration: 300 }).catch(() => {});
+    }
+  }, [authReady]);
 
   // Private mode: blur when app is hidden/backgrounded
   useEffect(() => {
@@ -254,7 +262,7 @@ export default function App() {
   const isModal = screen === 'addMemory' || screen === 'invite';
   const isMainTab = MAIN_TABS.includes(screen as any);
   const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || isModal || isMainTab;
-  const transition = { type: 'tween', ease: [0.32, 0, 0.16, 1], duration: 0.32 } as const;
+  const transition = { type: 'tween', ease: [0.25, 0.1, 0.25, 1], duration: 0.26 } as const;
 
   if (!authReady) {
     return (
@@ -267,7 +275,7 @@ export default function App() {
 
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#faf8f7' }}>
-      <AnimatePresence mode="wait" custom={dir}>
+      <AnimatePresence mode="sync" custom={dir}>
         <motion.div
           key={screen}
           custom={dir}

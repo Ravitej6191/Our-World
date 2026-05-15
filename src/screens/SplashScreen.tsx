@@ -1,6 +1,8 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
+import { signInWithPopup } from 'firebase/auth';
+import { Capacitor } from '@capacitor/core';
+import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
 import { auth, googleProvider } from '../firebase';
 import { T } from '../tokens';
 import { useHaptics } from '../hooks/useHaptics';
@@ -18,34 +20,29 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
   // Auto-advance for already-authenticated users
   useEffect(() => {
     if (!isAuthed) return;
-    const t = setTimeout(onContinue, 1600);
+    const t = setTimeout(onContinue, 1400);
     return () => clearTimeout(t);
   }, [isAuthed, onContinue]);
-
-  // Handle redirect result on return from signInWithRedirect (iOS Safari)
-  useEffect(() => {
-    getRedirectResult(auth).catch(() => {});
-  }, []);
 
   const handleGoogle = async () => {
     medium();
     setLoading(true);
     setError(false);
     try {
-      await signInWithPopup(auth, googleProvider);
-      // onAuthStateChanged in App.tsx will set isAuthed → triggers auto-advance above
-    } catch (e: any) {
-      const popupBlocked = e?.code === 'auth/popup-blocked'
-        || e?.code === 'auth/operation-not-supported-in-this-environment';
-      if (popupBlocked) {
-        // iOS Safari blocks popups — fall back to redirect flow
-        try { await signInWithRedirect(auth, googleProvider); } catch { setError(true); setLoading(false); }
-      } else if (e?.code !== 'auth/popup-closed-by-user') {
-        setError(true);
-        setLoading(false);
+      if (Capacitor.isNativePlatform()) {
+        // Native account picker — no browser tab opens
+        await FirebaseAuthentication.signInWithGoogle();
+        // Auth state syncs to firebase/auth automatically → onAuthStateChanged fires in App.tsx
       } else {
-        setLoading(false);
+        await signInWithPopup(auth, googleProvider);
       }
+    } catch (e: any) {
+      const cancelled =
+        e?.code === 'auth/popup-closed-by-user' ||
+        e?.code === 'auth/cancelled-popup-request' ||
+        (typeof e?.message === 'string' && /cancel/i.test(e.message));
+      if (!cancelled) setError(true);
+      setLoading(false);
     }
   };
 
@@ -66,7 +63,7 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
         borderRadius: '50%', background: 'rgba(240,204,200,0.4)', filter: 'blur(28px)',
       }} />
 
-      {/* Logo — shifted above center */}
+      {/* Logo */}
       <motion.div
         initial={{ opacity: 0, scale: 0.95 }}
         animate={{ opacity: 1, scale: 1 }}
@@ -86,17 +83,17 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
         >
           <svg width="96" height="96" viewBox="0 0 96 96">
             <defs>
-              <radialGradient id="lav" cx="35%" cy="35%">
+              <radialGradient id="sp_lav" cx="35%" cy="35%">
                 <stop offset="0%" stopColor="#e0d5f5" />
                 <stop offset="100%" stopColor="#b8a0e0" />
               </radialGradient>
-              <radialGradient id="bls" cx="35%" cy="35%">
+              <radialGradient id="sp_bls" cx="35%" cy="35%">
                 <stop offset="0%" stopColor="#fae0dc" />
                 <stop offset="100%" stopColor="#e8a8a0" />
               </radialGradient>
             </defs>
-            <circle cx="34" cy="48" r="26" fill="url(#lav)" opacity="0.9" />
-            <circle cx="62" cy="48" r="26" fill="url(#bls)" opacity="0.9" />
+            <circle cx="34" cy="48" r="26" fill="url(#sp_lav)" opacity="0.9" />
+            <circle cx="62" cy="48" r="26" fill="url(#sp_bls)" opacity="0.9" />
             <circle cx="48" cy="48" r="10" fill="#3a3245" opacity="0.92" />
           </svg>
         </motion.div>
