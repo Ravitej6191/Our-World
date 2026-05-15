@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { motion } from 'framer-motion';
 import { doc, getDoc, setDoc } from 'firebase/firestore';
-import { signInWithPopup } from 'firebase/auth';
+import { signInWithPopup, signInWithRedirect, getRedirectResult } from 'firebase/auth';
 import { db, auth, googleProvider } from '../firebase';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
@@ -42,8 +42,25 @@ export default function InviteAcceptScreen({ token, isAuthed, onAccepted, onDecl
       .finally(() => setLoading(false));
   }, [token]);
 
+  useEffect(() => {
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result) setSigningIn(true);
+      })
+      .catch(() => {});
+  }, []);
+
   const handleSignIn = async () => {
     setSigningIn(true);
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+    if (isMobile) {
+      try {
+        await signInWithRedirect(auth, googleProvider);
+      } catch {
+        setSigningIn(false);
+      }
+      return;
+    }
     try {
       await signInWithPopup(auth, googleProvider);
     } catch {

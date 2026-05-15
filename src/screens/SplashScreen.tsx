@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   signInWithPopup, signInWithRedirect,
-  getRedirectResult, GoogleAuthProvider,
+  getRedirectResult,
 } from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import { T } from '../tokens';
@@ -43,27 +43,37 @@ export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Prop
     medium();
     setLoading(true);
     setError(false);
+
+    const isMobile = /Android|iPhone|iPad|iPod/i.test(navigator.userAgent);
+
+    if (isMobile) {
+      // On mobile, popup opens a Chrome Custom Tab with no window.opener,
+      // so Firebase can't postMessage the result back. Use redirect instead.
+      try {
+        await signInWithRedirect(auth, googleProvider);
+        // Page navigates away; getRedirectResult picks it up on return
+      } catch {
+        setError(true);
+        setLoading(false);
+      }
+      return;
+    }
+
     try {
-      // Try popup first — on desktop and modern mobile Chrome this works in-page
       await signInWithPopup(auth, googleProvider);
     } catch (e: any) {
       const needsRedirect =
         e?.code === 'auth/popup-blocked' ||
-        e?.code === 'auth/popup-closed-by-user' ||
         e?.code === 'auth/operation-not-supported-in-this-environment' ||
         e?.code === 'auth/cancelled-popup-request';
-
-      if (needsRedirect && e?.code !== 'auth/popup-closed-by-user') {
-        // Mobile browser blocked the popup — fall back to full-page redirect
+      if (needsRedirect) {
         try {
           await signInWithRedirect(auth, googleProvider);
-          // Page navigates away; when it returns getRedirectResult handles it
         } catch {
           setError(true);
           setLoading(false);
         }
       } else if (e?.code === 'auth/popup-closed-by-user') {
-        // User dismissed — not an error
         setLoading(false);
       } else {
         setError(true);
