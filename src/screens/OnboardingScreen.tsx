@@ -122,10 +122,8 @@ export default function OnboardingScreen({ onDone }: Props) {
         <div style={{ fontSize: 11, letterSpacing: '0.22em', textTransform: 'uppercase', color: T.inkMuted, marginBottom: 14 }}>
           {p.eyebrow}
         </div>
-        <div style={{ fontSize: 30, lineHeight: 1.12, color: T.ink, fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 14 }}>
-          {p.title[0]}
-          <em style={{ fontFamily: T.fontSerif, fontWeight: 400, fontStyle: 'italic' }}>{p.titleItalic}</em>
-          {p.titleSuffix ?? ''}
+        <div style={{ fontSize: 30, lineHeight: 1.12, color: T.ink, fontWeight: 500, letterSpacing: '-0.02em', marginBottom: 14, whiteSpace: 'pre-line' }}>
+          {p.title}<em style={{ fontFamily: T.fontSerif, fontWeight: 400, fontStyle: 'italic' }}>{p.titleItalic}</em>{p.titleSuffix ?? ''}
         </div>
         <div style={{ fontSize: 15, lineHeight: 1.5, color: T.inkSoft, maxWidth: 300 }}>{p.body}</div>
       </div>

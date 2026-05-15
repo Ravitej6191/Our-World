@@ -59,6 +59,8 @@ export default function ProfileScreen({
   const { light, medium } = useHaptics();
   const milestones = useStore((s) => s.milestones);
   const showToast = useStore((s) => s.showToast);
+  const isGuest = useStore((s) => s.isGuest);
+  const setGuestMode = useStore((s) => s.setGuestMode);
   const doneMilestones = milestones.filter((m) => m.done);
   const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
   const initial = (child.name || 'M')[0].toUpperCase();
@@ -68,6 +70,10 @@ export default function ProfileScreen({
   const hasMultipleChildren = children.length > 1;
 
   const handleSignOut = async () => {
+    if (isGuest) {
+      setGuestMode(false);
+      return;
+    }
     try {
       await signOut(auth);
     } catch {
