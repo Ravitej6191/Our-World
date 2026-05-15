@@ -94,6 +94,7 @@ function todayShort() {
 export default function App() {
   const {
     child, children, memories, milestones, toast, onboardingDone, settings, isLoading,
+    isGuest, setGuestMode,
     setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
     addMember, removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
   } = useStore();
@@ -111,12 +112,21 @@ export default function App() {
     return unsub;
   }, []);
 
-  // Fade out native splash once auth state is determined
+  // Fade out native splash and navigate once auth state is determined
   useEffect(() => {
-    if (authReady) {
-      CapSplash.hide({ fadeOutDuration: 300 }).catch(() => {});
+    if (!authReady) return;
+    CapSplash.hide({ fadeOutDuration: 300 }).catch(() => {});
+    // Skip splash screen — go directly to the right destination
+    if (isAuthed || isGuest) {
+      replace(onboardingDone ? 'home' : 'onboarding');
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady]);
+
+  // When user signs in while in guest mode, clear guest flag so Firestore sync kicks in
+  useEffect(() => {
+    if (isAuthed && isGuest) setGuestMode(false);
+  }, [isAuthed, isGuest, setGuestMode]);
 
   // Private mode: blur when app is hidden/backgrounded
   useEffect(() => {
@@ -128,13 +138,13 @@ export default function App() {
 
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
-  // Navigate to splash whenever the user signs out
+  // Navigate to splash whenever the user signs out (and isn't a guest)
   useEffect(() => {
-    if (authReady && !isAuthed && screen !== 'splash') {
+    if (authReady && !isAuthed && !isGuest && screen !== 'splash') {
       replace('splash');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthed, authReady]);
+  }, [isAuthed, isGuest, authReady]);
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
@@ -247,11 +257,12 @@ export default function App() {
   };
 
   const handleSplashContinue = () => {
-    if (onboardingDone) {
-      replace('home');
-    } else {
-      replace('onboarding');
-    }
+    replace(onboardingDone ? 'home' : 'onboarding');
+  };
+
+  const handleGuestMode = () => {
+    setGuestMode(true);
+    replace(onboardingDone ? 'home' : 'onboarding');
   };
 
   const selectedMemory = memories.find(m => m.id === openMemoryId);
@@ -275,7 +286,7 @@ export default function App() {
 
   return (
     <div style={{ position: 'fixed', inset: 0, overflow: 'hidden', background: '#faf8f7' }}>
-      <AnimatePresence mode="sync" custom={dir}>
+      <AnimatePresence mode="sync" custom={dir} initial={false}>
         <motion.div
           key={screen}
           custom={dir}
@@ -287,7 +298,7 @@ export default function App() {
           style={{ position: 'absolute', inset: 0 }}
         >
           {screen === 'splash' && (
-            <SplashScreen isAuthed={isAuthed} onContinue={handleSplashContinue} />
+            <SplashScreen isAuthed={isAuthed} onContinue={handleSplashContinue} onGuestMode={handleGuestMode} />
           )}
 
           {screen === 'onboarding' && (

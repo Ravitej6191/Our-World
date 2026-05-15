@@ -22,8 +22,10 @@ interface AppState {
   settings: AppSettings;
   searchHistory: string[];
   isLoading: boolean;
+  isGuest: boolean;
 
   completeOnboarding: (c: Child) => void;
+  setGuestMode: (v: boolean) => void;
   addChildProfile: (c: Child) => void;
   switchChildProfile: (idx: number) => void;
   setChild: (c: Partial<Child>) => void;
@@ -62,6 +64,9 @@ export const useStore = create<AppState>()(
       settings: { faceId: false, privateMode: false, autoSave: true },
       searchHistory: [],
       isLoading: false,
+      isGuest: false,
+
+      setGuestMode: (v) => set({ isGuest: v }),
 
       completeOnboarding: (c) =>
         set(() => ({
@@ -144,6 +149,7 @@ export const useStore = create<AppState>()(
         members: state.members,
         settings: state.settings,
         searchHistory: state.searchHistory,
+        isGuest: state.isGuest,
       }),
     },
   ),
