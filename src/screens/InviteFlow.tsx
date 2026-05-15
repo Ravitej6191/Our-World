@@ -1,9 +1,12 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { doc, setDoc } from 'firebase/firestore';
+import { db, auth } from '../firebase';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import Toggle from '../components/Toggle';
 import { useHaptics } from '../hooks/useHaptics';
+import { useStore } from '../store';
 
 interface Props {
   onClose: () => void;
@@ -57,6 +60,7 @@ function validateContact(value: string, mode: 'email' | 'text'): string | null {
 
 export default function InviteFlow({ onClose, onInvited }: Props) {
   const { light, medium, success } = useHaptics();
+  const child = useStore((s) => s.child);
   const [step, setStep] = useState<Step>('pick');
   const [role, setRole] = useState<Role | null>(null);
   const [contactMode, setContactMode] = useState<'email' | 'text'>('email');
@@ -75,9 +79,22 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
   const handleSend = async () => {
     success();
     const token = Math.random().toString(36).slice(2, 10);
-    const inviteUrl = `https://ourworld.app/invite/${token}`;
+    const inviteUrl = `${window.location.origin}/?invite=${token}`;
     setGeneratedUrl(inviteUrl);
     setStep('sent');
+
+    // Persist invite token to Firestore so the link works when opened
+    if (auth.currentUser) {
+      setDoc(doc(db, 'invites', token), {
+        token,
+        ownerId: auth.currentUser.uid,
+        ownerChildName: child.name || 'Our World',
+        role: role?.id ?? '',
+        roleName: role?.label ?? '',
+        permissions: { canView: true, canReact, canAdd, notifyNew },
+        createdAt: Date.now(),
+      }).catch(() => {}); // silent fail — invite URL still shareable
+    }
 
     const shareText = `${name || 'Someone special'} has invited you to view a private world on Our World.\n\nTap to join: ${inviteUrl}`;
 

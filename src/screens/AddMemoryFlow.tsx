@@ -10,6 +10,7 @@ import Toggle from '../components/Toggle';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
 import { getPronouns } from '../shared/constants';
+import { uploadToCloudinary, cloudinaryConfigured } from '../lib/cloudinary';
 
 interface Props {
   defaultMilestoneId?: string | null;
@@ -297,8 +298,22 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
   const [milestoneId, setMilestoneId] = useState<string | null>(defaultMilestoneId ?? null);
   const [emotion, setEmotion] = useState<EmotionKind | null>(null);
   const [showDiscardConfirm, setShowDiscardConfirm] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const videoInputRef = useRef<HTMLInputElement | null>(null);
   const { light, medium, success } = useHaptics();
+
+  const uploadMedia = async (dataUri: string): Promise<string> => {
+    if (!cloudinaryConfigured) return dataUri;
+    setUploading(true);
+    try {
+      const url = await uploadToCloudinary(dataUri);
+      return url;
+    } catch {
+      return dataUri; // fall back to local URI silently
+    } finally {
+      setUploading(false);
+    }
+  };
 
   const capturePhoto = async () => {
     try {
@@ -307,7 +322,11 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
         source: CameraSource.Camera,
         quality: 85,
       });
-      if (photo.dataUrl) setMediaUri(photo.dataUrl);
+      if (photo.dataUrl) {
+        setMediaUri(photo.dataUrl); // show locally first
+        const url = await uploadMedia(photo.dataUrl);
+        setMediaUri(url);
+      }
     } catch { /* cancelled or permission denied */ }
   };
 
@@ -318,7 +337,11 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
         source: CameraSource.Photos,
         quality: 85,
       });
-      if (photo.dataUrl) setMediaUri(photo.dataUrl);
+      if (photo.dataUrl) {
+        setMediaUri(photo.dataUrl);
+        const url = await uploadMedia(photo.dataUrl);
+        setMediaUri(url);
+      }
     } catch { /* cancelled or permission denied */ }
   };
 
@@ -335,13 +358,15 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
       setMediaUri(dataUri);
       const frame = await extractVideoFrame(dataUri);
       if (frame) setPosterUri(frame);
+      const url = await uploadMedia(dataUri);
+      setMediaUri(url);
     };
     reader.readAsDataURL(file);
     e.target.value = '';
   };
 
   const hasContent = title.trim().length > 0 || note.trim().length > 0 || emotion !== null;
-  const canSave = title.trim().length > 0 && emotion !== null;
+  const canSave = title.trim().length > 0 && emotion !== null && !uploading;
 
   const handleClose = () => {
     if (step === 'compose' && hasContent) {
@@ -603,10 +628,12 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
               )}
               {media === 'voice' && (
                 <VoiceRecorder
-                  onRecorded={(uri, dur, transcript) => {
+                  onRecorded={async (uri, dur, transcript) => {
                     setMediaUri(uri);
                     setVoiceDuration(dur);
                     if (transcript && !note.trim()) setNote(transcript);
+                    const url = await uploadMedia(uri);
+                    setMediaUri(url);
                   }}
                 />
               )}
@@ -771,6 +798,25 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                 </AnimatePresence>
               </div>
 
+              {/* Upload indicator */}
+              {uploading && cloudinaryConfigured && (
+                <div style={{
+                  display: 'flex', alignItems: 'center', gap: 8,
+                  justifyContent: 'center', padding: '4px 0',
+                }}>
+                  <motion.div
+                    animate={{ rotate: 360 }}
+                    transition={{ repeat: Infinity, duration: 0.9, ease: 'linear' }}
+                    style={{
+                      width: 14, height: 14, borderRadius: 7,
+                      border: '2px solid rgba(139,111,199,0.2)',
+                      borderTopColor: T.lavenderDeep,
+                    }}
+                  />
+                  <span style={{ fontSize: 12, color: T.inkMuted }}>Uploading to cloud…</span>
+                </div>
+              )}
+
               {/* Save CTA */}
               <motion.button
                 whileTap={canSave ? { scale: 0.97 } : {}}
@@ -791,7 +837,9 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                   WebkitTapHighlightColor: 'transparent' as any,
                 }}
               >
-                {!title.trim()
+                {uploading
+                  ? 'Uploading…'
+                  : !title.trim()
                   ? 'Add a title to save'
                   : !emotion
                   ? 'Choose a feeling to save'

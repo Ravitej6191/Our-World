@@ -10,6 +10,7 @@ import { useFirestoreSync } from './hooks/useFirestore';
 import { EMOTION_TONE } from './shared/constants';
 
 import SplashScreen from './screens/SplashScreen';
+import InviteAcceptScreen from './screens/InviteAcceptScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import AddChildFlow from './screens/AddChildFlow';
 import SwitchChildScreen from './screens/SwitchChildScreen';
@@ -34,7 +35,8 @@ type Screen =
   | 'home' | 'milestones' | 'milestoneDetail'
   | 'search' | 'addMemory' | 'memoryDetail'
   | 'family' | 'memberDetail' | 'invite'
-  | 'profile' | 'settings' | 'keepsake';
+  | 'profile' | 'settings' | 'keepsake'
+  | 'inviteAccept';
 
 const MAIN_TABS: Screen[] = ['home', 'milestones', 'family', 'profile'];
 
@@ -102,6 +104,7 @@ export default function App() {
   const [authReady, setAuthReady] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
   const [appHidden, setAppHidden] = useState(false);
+  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(null);
 
   // Firebase auth state listener
   useEffect(() => {
@@ -116,6 +119,18 @@ export default function App() {
   useEffect(() => {
     if (!authReady) return;
     CapSplash.hide({ fadeOutDuration: 300 }).catch(() => {});
+
+    // Check for invite link in URL
+    const params = new URLSearchParams(window.location.search);
+    const inviteToken = params.get('invite');
+    if (inviteToken) {
+      setPendingInviteToken(inviteToken);
+      // Clear the token from URL so refresh/share doesn't re-trigger
+      window.history.replaceState({}, '', window.location.pathname);
+      replace('inviteAccept');
+      return;
+    }
+
     // Skip splash screen — go directly to the right destination
     if (isAuthed || isGuest) {
       replace(onboardingDone ? 'home' : 'onboarding');
@@ -280,7 +295,7 @@ export default function App() {
 
   const isModal = screen === 'addMemory' || screen === 'invite';
   const isMainTab = MAIN_TABS.includes(screen as any);
-  const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || isModal || isMainTab;
+  const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || screen === 'inviteAccept' || isModal || isMainTab;
   const transition = { type: 'tween', ease: [0.25, 0.1, 0.25, 1], duration: 0.26 } as const;
 
   if (!authReady) {
@@ -307,6 +322,21 @@ export default function App() {
         >
           {screen === 'splash' && (
             <SplashScreen isAuthed={isAuthed} onContinue={handleSplashContinue} onGuestMode={handleGuestMode} />
+          )}
+
+          {screen === 'inviteAccept' && pendingInviteToken && (
+            <InviteAcceptScreen
+              token={pendingInviteToken}
+              isAuthed={isAuthed}
+              onAccepted={() => {
+                setPendingInviteToken(null);
+                replace(onboardingDone ? 'home' : 'onboarding');
+              }}
+              onDecline={() => {
+                setPendingInviteToken(null);
+                replace('splash');
+              }}
+            />
           )}
 
           {screen === 'onboarding' && (
