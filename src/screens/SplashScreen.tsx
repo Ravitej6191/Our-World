@@ -1,8 +1,9 @@
 import React, { useEffect, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { signInWithPopup } from 'firebase/auth';
-import { Capacitor } from '@capacitor/core';
-import { FirebaseAuthentication } from '@capacitor-firebase/authentication';
+import {
+  signInWithPopup, signInWithRedirect,
+  getRedirectResult, GoogleAuthProvider,
+} from 'firebase/auth';
 import { auth, googleProvider } from '../firebase';
 import { T } from '../tokens';
 import { useHaptics } from '../hooks/useHaptics';
@@ -24,25 +25,52 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
     return () => clearTimeout(t);
   }, [isAuthed, onContinue]);
 
+  // On mobile, signInWithRedirect navigates away and back.
+  // When we return, pick up the result here and show a spinner while it resolves.
+  useEffect(() => {
+    setLoading(true);
+    getRedirectResult(auth)
+      .then((result) => {
+        // result is null if we're not returning from a redirect — that's fine
+        if (!result) setLoading(false);
+        // if result is non-null, onAuthStateChanged in App.tsx fires → auto-advance
+      })
+      .catch(() => {
+        setError(true);
+        setLoading(false);
+      });
+  }, []);
+
   const handleGoogle = async () => {
     medium();
     setLoading(true);
     setError(false);
     try {
-      if (Capacitor.isNativePlatform()) {
-        // Native account picker — no browser tab opens
-        await FirebaseAuthentication.signInWithGoogle();
-        // Auth state syncs to firebase/auth automatically → onAuthStateChanged fires in App.tsx
-      } else {
-        await signInWithPopup(auth, googleProvider);
-      }
+      // Try popup first — on desktop and modern mobile Chrome this works in-page
+      await signInWithPopup(auth, googleProvider);
     } catch (e: any) {
-      const cancelled =
+      const needsRedirect =
+        e?.code === 'auth/popup-blocked' ||
         e?.code === 'auth/popup-closed-by-user' ||
-        e?.code === 'auth/cancelled-popup-request' ||
-        (typeof e?.message === 'string' && /cancel/i.test(e.message));
-      if (!cancelled) setError(true);
-      setLoading(false);
+        e?.code === 'auth/operation-not-supported-in-this-environment' ||
+        e?.code === 'auth/cancelled-popup-request';
+
+      if (needsRedirect && e?.code !== 'auth/popup-closed-by-user') {
+        // Mobile browser blocked the popup — fall back to full-page redirect
+        try {
+          await signInWithRedirect(auth, googleProvider);
+          // Page navigates away; when it returns getRedirectResult handles it
+        } catch {
+          setError(true);
+          setLoading(false);
+        }
+      } else if (e?.code === 'auth/popup-closed-by-user') {
+        // User dismissed — not an error
+        setLoading(false);
+      } else {
+        setError(true);
+        setLoading(false);
+      }
     }
   };
 
@@ -124,7 +152,7 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
         </motion.div>
       </motion.div>
 
-      {/* Google sign-in — only shown when not authenticated */}
+      {/* Sign-in button — hidden once authed */}
       <AnimatePresence>
         {!isAuthed && (
           <motion.div
