@@ -22,23 +22,20 @@ export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Prop
   // Auto-advance for already-authenticated users
   useEffect(() => {
     if (!isAuthed) return;
-    const t = setTimeout(onContinue, 1400);
+    const t = setTimeout(onContinue, 500);
     return () => clearTimeout(t);
   }, [isAuthed, onContinue]);
 
   // On mobile, signInWithRedirect navigates away and back.
   // When we return, pick up the result here and show a spinner while it resolves.
+  // Do NOT show a spinner on cold opens — only when a redirect result is actually present.
   useEffect(() => {
-    setLoading(true);
     getRedirectResult(auth)
       .then((result) => {
-        // result is null if we're not returning from a redirect — that's fine
-        if (!result) setLoading(false);
-        // if result is non-null, onAuthStateChanged in App.tsx fires → auto-advance
+        if (result) setLoading(true); // auth state change is about to fire → show spinner
       })
       .catch(() => {
         setError(true);
-        setLoading(false);
       });
   }, []);
 

@@ -51,7 +51,7 @@ function Divider() {
 
 export default function SettingsScreen({ onBack }: Props) {
   const { light } = useHaptics();
-  const { settings, updateSettings } = useStore();
+  const { settings, updateSettings, isGuest } = useStore();
 
   return (
     <div style={{
@@ -126,11 +126,12 @@ export default function SettingsScreen({ onBack }: Props) {
           <SettingsRow
             icon="cloud"
             label="Auto-save to cloud"
-            sub="Backed up after every memory"
+            sub={isGuest ? 'Sign in to enable cloud backup' : 'Backed up after every memory'}
             right={
               <Toggle
-                value={settings.autoSave}
-                onChange={(v) => updateSettings({ autoSave: v })}
+                value={isGuest ? false : settings.autoSave}
+                onChange={isGuest ? undefined : (v) => updateSettings({ autoSave: v })}
+                disabled={isGuest}
               />
             }
           />

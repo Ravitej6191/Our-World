@@ -240,8 +240,23 @@ export default function ProfileScreen({
         </div>
       </div>
 
-      {/* Sign Out */}
-      <div style={{ padding: '16px 20px 0', position: 'relative', zIndex: 1 }}>
+      {/* Guest badge */}
+      {isGuest && (
+        <div style={{ padding: '16px 20px 0', position: 'relative', zIndex: 1 }}>
+          <div style={{
+            background: T.bgCool, borderRadius: 14, padding: '12px 16px',
+            display: 'flex', alignItems: 'center', gap: 10,
+          }}>
+            <Icon name="info" size={15} color={T.lavenderDeep} />
+            <div style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.45 }}>
+              Memories are saved locally. Sign in to back up to the cloud.
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Sign Out / Leave guest mode */}
+      <div style={{ padding: '12px 20px 0', position: 'relative', zIndex: 1 }}>
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => { medium(); handleSignOut(); }}
@@ -255,7 +270,7 @@ export default function ProfileScreen({
           }}
         >
           <Icon name="logout" size={17} color={T.inkSoft} />
-          Sign out
+          {isGuest ? 'Leave guest mode' : 'Sign out'}
         </motion.button>
       </div>
 

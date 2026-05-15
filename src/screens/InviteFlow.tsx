@@ -48,7 +48,7 @@ function validateContact(value: string, mode: 'email' | 'text'): string | null {
     }
   } else {
     const digits = value.replace(/\D/g, '');
-    if (digits.length < 7 || digits.length > 15) {
+    if (digits.length < 10 || digits.length > 15) {
       return 'Please enter a valid phone number';
     }
   }

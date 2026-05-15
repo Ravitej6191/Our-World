@@ -68,8 +68,8 @@ export function useFirestoreSync() {
       if (user && !initialLoadDone.current) {
         loadFromFirestore(user.uid);
       } else if (!user) {
-        // Signed out — mark load as done so debounce writes don't accumulate
-        initialLoadDone.current = true;
+        // Signed out — reset so next sign-in reloads fresh Firestore data
+        initialLoadDone.current = false;
         useStore.setState({ isLoading: false });
       }
     });

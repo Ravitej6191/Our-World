@@ -129,11 +129,19 @@ export default function App() {
   }, [isAuthed, isGuest, setGuestMode]);
 
   // Private mode: blur when app is hidden/backgrounded
+  // Uses both visibilitychange (web) and Capacitor appStateChange (native/PWA)
   useEffect(() => {
     if (!settings.privateMode) { setAppHidden(false); return; }
     const handleVisibility = () => setAppHidden(document.hidden);
     document.addEventListener('visibilitychange', handleVisibility);
-    return () => document.removeEventListener('visibilitychange', handleVisibility);
+    let capHandle: { remove: () => void } | undefined;
+    CapApp.addListener('appStateChange', ({ isActive }) => {
+      setAppHidden(!isActive);
+    }).then((h) => { capHandle = h; });
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
+      capHandle?.remove();
+    };
   }, [settings.privateMode]);
 
   const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
