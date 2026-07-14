@@ -11,10 +11,9 @@ import { useHaptics } from '../hooks/useHaptics';
 interface Props {
   isAuthed: boolean;
   onContinue: () => void;
-  onGuestMode: () => void;
 }
 
-export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Props) {
+export default function SplashScreen({ isAuthed, onContinue }: Props) {
   const { medium } = useHaptics();
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(false);
@@ -225,18 +224,6 @@ export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Prop
                 </motion.div>
               )}
             </AnimatePresence>
-
-            <motion.button
-              onClick={onGuestMode}
-              style={{
-                background: 'none', border: 'none', cursor: 'pointer',
-                fontSize: 14, color: T.inkSoft, letterSpacing: '0.01em',
-                padding: '4px 16px',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              Continue without account
-            </motion.button>
           </motion.div>
         )}
       </AnimatePresence>

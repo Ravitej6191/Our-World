@@ -5,6 +5,7 @@ import Icon from '../components/Icon';
 import Toggle from '../components/Toggle';
 import { useHaptics } from '../hooks/useHaptics';
 import { useStore } from '../store';
+import { GLASS_CHROME_BTN } from '../shared/constants';
 import type { FamilyMember } from '../types';
 
 interface Props {
@@ -13,12 +14,7 @@ interface Props {
   onRemove: (id: string) => void;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const chromeBtn = GLASS_CHROME_BTN;
 
 function Divider() {
   return <div style={{ height: 1, background: T.lineSoft, marginLeft: 20 }} />;

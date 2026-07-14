@@ -1,10 +1,11 @@
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import EmotionGlyph from '../components/EmotionGlyph';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
+import { filterByActiveChild, GLASS_HEADER, GLASS_CHROME_BTN } from '../shared/constants';
 import type { Milestone } from '../types';
 
 interface Props {
@@ -13,12 +14,7 @@ interface Props {
   onAddMemoryForMilestone: (id: string) => void;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const chromeBtn = GLASS_CHROME_BTN;
 
 const DONE_GRADIENTS: Record<string, string> = {
   peach:    'linear-gradient(135deg, #fae8d5, #f8d8b8)',
@@ -179,7 +175,13 @@ function MilestoneTile({ milestone, onOpen, onCapture, sparkle }: {
 
 export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryForMilestone }: Props) {
   const { light, success } = useHaptics();
-  const milestones = useStore((s) => s.milestones);
+  const allMilestones = useStore((s) => s.milestones);
+  const activeChildId = useStore((s) => s.child.id);
+  const firstChildId = useStore((s) => s.children[0]?.id ?? s.child.id);
+  const milestones = useMemo(
+    () => filterByActiveChild(allMilestones, activeChildId, firstChildId),
+    [allMilestones, activeChildId, firstChildId],
+  );
   const done = milestones.filter((m) => m.done).length;
   const total = milestones.length;
 
@@ -225,8 +227,9 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
 
       {/* Header */}
       <div style={{
+        ...GLASS_HEADER,
         padding: `calc(${T.safeTop} + 12px) 24px 20px`,
-        flexShrink: 0, position: 'relative', zIndex: 1,
+        flexShrink: 0,
       }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 4 }}>
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>

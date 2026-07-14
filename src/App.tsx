@@ -1,4 +1,4 @@
-import React, { useState, useCallback, useEffect } from 'react';
+import React, { useState, useCallback, useEffect, useMemo } from 'react';
 import { AnimatePresence, motion } from 'framer-motion';
 import { App as CapApp } from '@capacitor/app';
 import { SplashScreen as CapSplash } from '@capacitor/splash-screen';
@@ -10,7 +10,7 @@ import type { EmotionKind } from './tokens';
 import { useFirestoreSync } from './hooks/useFirestore';
 import { useMediaBackupRetry } from './hooks/useMediaBackupRetry';
 import { useBiometricLock } from './hooks/useBiometricLock';
-import { EMOTION_TONE } from './shared/constants';
+import { EMOTION_TONE, filterByActiveChild } from './shared/constants';
 import { T } from './tokens';
 import Icon from './components/Icon';
 
@@ -18,7 +18,6 @@ import SplashScreen from './screens/SplashScreen';
 import InviteAcceptScreen from './screens/InviteAcceptScreen';
 import OnboardingScreen from './screens/OnboardingScreen';
 import AddChildFlow from './screens/AddChildFlow';
-import SwitchChildScreen from './screens/SwitchChildScreen';
 import TimelineScreen from './screens/TimelineScreen';
 import MilestonesScreen from './screens/MilestonesScreen';
 import MilestoneDetailScreen from './screens/MilestoneDetailScreen';
@@ -29,18 +28,17 @@ import FamilyScreen from './screens/FamilyScreen';
 import MemberDetailScreen from './screens/MemberDetailScreen';
 import InviteFlow from './screens/InviteFlow';
 import ProfileScreen from './screens/ProfileScreen';
-import SettingsScreen from './screens/SettingsScreen';
 import KeepsakeBookScreen from './screens/KeepsakeBookScreen';
 import TabBar from './components/TabBar';
 import Toast from './components/Toast';
 import type { ChildFlowMode } from './screens/AddChildFlow';
 
 type Screen =
-  | 'splash' | 'onboarding' | 'addChild' | 'switchChild'
+  | 'splash' | 'onboarding' | 'addChild'
   | 'home' | 'milestones' | 'milestoneDetail'
   | 'search' | 'addMemory' | 'memoryDetail'
   | 'family' | 'memberDetail' | 'invite'
-  | 'profile' | 'settings' | 'keepsake'
+  | 'profile' | 'keepsake'
   | 'inviteAccept';
 
 const MAIN_TABS: Screen[] = ['home', 'milestones', 'family', 'profile'];
@@ -101,10 +99,19 @@ function todayShort() {
 export default function App() {
   const {
     child, children, memories, milestones, toast, onboardingDone, settings, isLoading,
-    isGuest, setGuestMode,
     setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
     removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
   } = useStore();
+
+  const firstChildId = children[0]?.id ?? child.id;
+  const childMemories = useMemo(
+    () => filterByActiveChild(memories, child.id, firstChildId),
+    [memories, child.id, firstChildId],
+  );
+  const childMilestones = useMemo(
+    () => filterByActiveChild(milestones, child.id, firstChildId),
+    [milestones, child.id, firstChildId],
+  );
 
   const [authReady, setAuthReady] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
@@ -138,22 +145,17 @@ export default function App() {
     }
 
     // Skip splash screen — go directly to the right destination
-    if (isAuthed || isGuest) {
+    if (isAuthed) {
       replace(onboardingDone ? 'home' : 'onboarding');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authReady]);
 
-  // When user signs in while in guest mode, clear guest flag so Firestore sync kicks in
-  useEffect(() => {
-    if (isAuthed && isGuest) setGuestMode(false);
-  }, [isAuthed, isGuest, setGuestMode]);
-
-  // Tracks whether the app is backgrounded — used for both the private-mode
-  // blur overlay and the biometric lock's "re-lock on resume" behavior.
+  // Tracks whether the app is backgrounded — used by the biometric lock's
+  // "re-lock on resume" behavior.
   // Uses both visibilitychange (web) and Capacitor appStateChange (native/PWA)
   useEffect(() => {
-    if (!settings.privateMode && !settings.faceId) return;
+    if (!settings.faceId) return;
     const handleVisibility = () => setAppHidden(document.hidden);
     document.addEventListener('visibilitychange', handleVisibility);
     let capHandle: { remove: () => void } | undefined;
@@ -165,15 +167,15 @@ export default function App() {
       capHandle?.remove();
       setAppHidden(false);
     };
-  }, [settings.privateMode, settings.faceId]);
+  }, [settings.faceId]);
 
-  // Navigate to splash whenever the user signs out (and isn't a guest)
+  // Navigate to splash whenever the user signs out
   useEffect(() => {
-    if (authReady && !isAuthed && !isGuest && screen !== 'splash') {
+    if (authReady && !isAuthed && screen !== 'splash') {
       replace('splash');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isAuthed, isGuest, authReady]);
+  }, [isAuthed, authReady]);
 
   const [activeTab, setActiveTab] = useState<TabId>('home');
   const [openMemoryId, setOpenMemoryId] = useState<string | null>(null);
@@ -234,7 +236,7 @@ export default function App() {
     mediaUri?: string; posterUri?: string; duration?: string;
   }) => {
     const id = `m${Date.now()}`;
-    const milestone = milestones.find(ml => ml.id === m.milestoneId);
+    const milestone = childMilestones.find(ml => ml.id === m.milestoneId);
     const tone = EMOTION_TONE[m.emotion as keyof typeof EMOTION_TONE] ?? 'lavender';
     addMemory({
       id,
@@ -282,7 +284,7 @@ export default function App() {
     showToast({ text: 'Member removed', variant: 'success' });
   };
 
-  const handleChildFlowDone = (c: import('./types').Child) => {
+  const handleChildFlowDone = (c: Omit<import('./types').Child, 'id'>) => {
     if (childFlowMode === 'setup') {
       completeOnboarding(c);
       replace('home');
@@ -301,19 +303,14 @@ export default function App() {
     replace(onboardingDone ? 'home' : 'onboarding');
   };
 
-  const handleGuestMode = () => {
-    setGuestMode(true);
-    replace(onboardingDone ? 'home' : 'onboarding');
-  };
-
-  const selectedMemory = memories.find(m => m.id === openMemoryId);
-  const selectedMilestone = milestones.find(m => m.id === openMilestoneId);
+  const selectedMemory = childMemories.find(m => m.id === openMemoryId);
+  const selectedMilestone = childMilestones.find(m => m.id === openMilestoneId);
   const members = useStore((s) => s.members);
   const selectedMember = members.find(m => m.id === openMemberId);
 
   const isModal = screen === 'addMemory' || screen === 'invite';
   const isMainTab = MAIN_TABS.includes(screen);
-  const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || screen === 'inviteAccept' || isModal || isMainTab;
+  const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'inviteAccept' || isModal || isMainTab;
   const transition = { type: 'tween', ease: [0.25, 0.1, 0.25, 1], duration: 0.26 } as const;
 
   if (!authReady) {
@@ -339,7 +336,7 @@ export default function App() {
           style={{ position: 'absolute', inset: 0 }}
         >
           {screen === 'splash' && (
-            <SplashScreen isAuthed={isAuthed} onContinue={handleSplashContinue} onGuestMode={handleGuestMode} />
+            <SplashScreen isAuthed={isAuthed} onContinue={handleSplashContinue} />
           )}
 
           {screen === 'inviteAccept' && pendingInviteToken && (
@@ -373,21 +370,10 @@ export default function App() {
             />
           )}
 
-          {screen === 'switchChild' && (
-            <SwitchChildScreen
-              onBack={pop}
-              onSwitch={() => replace('home')}
-              onAddChild={() => {
-                setChildFlowMode('add');
-                push('addChild');
-              }}
-            />
-          )}
-
           {screen === 'home' && (
             <TimelineScreen
               child={child}
-              memories={memories}
+              memories={childMemories}
               isLoading={isLoading}
               onOpenMemory={handleOpenMemory}
               onOpenSearch={() => push('search')}
@@ -406,7 +392,7 @@ export default function App() {
           {screen === 'milestoneDetail' && (
             <MilestoneDetailScreen
               milestone={selectedMilestone}
-              memories={memories}
+              memories={childMemories}
               onBack={pop}
               onAddMemory={() => handleOpenAddMemory(openMilestoneId ?? undefined)}
               onOpenMemory={handleOpenMemory}
@@ -415,7 +401,7 @@ export default function App() {
 
           {screen === 'search' && (
             <SearchScreen
-              memories={memories}
+              memories={childMemories}
               onBack={pop}
               onOpenMemory={handleOpenMemory}
             />
@@ -474,23 +460,17 @@ export default function App() {
             <ProfileScreen
               child={child}
               children={children}
-              memoriesCount={memories.length}
+              memoriesCount={childMemories.length}
               onBack={() => { setActiveTab('home'); jumpTab('home'); }}
               onEdit={() => { setChildFlowMode('edit'); push('addChild'); }}
-              onOpenSettings={() => push('settings')}
               onOpenKeepsake={() => push('keepsake')}
-              onSwitchChild={() => push('switchChild')}
               onAddChild={() => { setChildFlowMode('add'); push('addChild'); }}
             />
           )}
 
-          {screen === 'settings' && (
-            <SettingsScreen onBack={pop} />
-          )}
-
           {screen === 'keepsake' && (
             <KeepsakeBookScreen
-              memories={memories}
+              memories={childMemories}
               childName={child.name}
               onBack={pop}
             />
@@ -503,22 +483,6 @@ export default function App() {
       )}
 
       {toast && <Toast toast={toast} onDone={clearToast} />}
-
-      {/* Private mode blur overlay */}
-      <AnimatePresence>
-        {settings.privateMode && appHidden && (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            style={{
-              position: 'absolute', inset: 0, zIndex: 999,
-              backdropFilter: 'blur(24px)',
-              background: 'rgba(250,248,247,0.85)',
-            }}
-          />
-        )}
-      </AnimatePresence>
 
       {/* Biometric lock screen */}
       <AnimatePresence>

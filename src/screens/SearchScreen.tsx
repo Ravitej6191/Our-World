@@ -1,11 +1,12 @@
 import React, { useState, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { T, type EmotionKind } from '../tokens';
+import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { EmotionChip } from '../components/EmotionGlyph';
 import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import { useHaptics } from '../hooks/useHaptics';
 import { useStore } from '../store';
+import { GLASS_HEADER, GLASS_CHROME_BTN } from '../shared/constants';
 import type { Memory } from '../types';
 
 interface Props {
@@ -14,52 +15,25 @@ interface Props {
   onOpenMemory: (id: string) => void;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
-
-type FilterId = 'all' | 'milestones' | EmotionKind;
-
-const FILTERS: { id: FilterId; label: string }[] = [
-  { id: 'all', label: 'All' },
-  { id: 'milestones', label: 'Milestones' },
-  { id: 'joy', label: 'Joy' },
-  { id: 'love', label: 'Love' },
-  { id: 'wonder', label: 'Wonder' },
-  { id: 'calm', label: 'Calm' },
-  { id: 'playful', label: 'Playful' },
-  { id: 'sleepy', label: 'Sleepy' },
-];
+const chromeBtn = GLASS_CHROME_BTN;
 
 export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) {
   const { light } = useHaptics();
   const { searchHistory, addSearchQuery, clearSearchHistory } = useStore();
   const [query, setQuery] = useState('');
-  const [activeFilter, setActiveFilter] = useState<FilterId>('all');
 
   const results = useMemo(() => {
-    let list = memories;
-    if (activeFilter === 'milestones') {
-      list = list.filter((m) => m.milestone);
-    } else if (activeFilter !== 'all') {
-      list = list.filter((m) => m.emotion === activeFilter);
-    }
-    if (query.trim()) {
-      const q = query.toLowerCase();
-      list = list.filter(
-        (m) =>
-          m.title.toLowerCase().includes(q) ||
-          m.note.toLowerCase().includes(q) ||
-          m.label.toLowerCase().includes(q),
-      );
-    }
-    return list;
-  }, [memories, query, activeFilter]);
+    if (!query.trim()) return [];
+    const q = query.toLowerCase();
+    return memories.filter(
+      (m) =>
+        m.title.toLowerCase().includes(q) ||
+        m.note.toLowerCase().includes(q) ||
+        m.label.toLowerCase().includes(q),
+    );
+  }, [memories, query]);
 
-  const isEmpty = query.trim() === '' && activeFilter === 'all';
+  const isEmpty = query.trim() === '';
   const hasResults = results.length > 0;
 
   const handleSearch = (q: string) => {
@@ -83,7 +57,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
       }}
     >
       {/* Top bar */}
-      <div style={{ padding: `calc(${T.safeTop} + 12px) 20px 0`, flexShrink: 0 }}>
+      <div style={{ ...GLASS_HEADER, padding: `calc(${T.safeTop} + 12px) 20px 16px`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16 }}>
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />
@@ -126,33 +100,6 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
               <Icon name="close" size={12} color={T.inkMuted} strokeWidth={2.2} />
             </motion.button>
           )}
-        </div>
-
-        {/* Filter chips */}
-        <div style={{
-          display: 'flex', gap: 8, marginTop: 12,
-          overflowX: 'auto', paddingBottom: 2,
-          scrollbarWidth: 'none',
-        }}>
-          {FILTERS.map((f) => (
-            <motion.button
-              key={f.id}
-              whileTap={{ scale: 0.93 }}
-              onClick={() => { light(); setActiveFilter(f.id); }}
-              style={{
-                flexShrink: 0, height: 32, padding: '0 14px',
-                borderRadius: 999,
-                background: activeFilter === f.id ? T.lavenderDeep : T.card,
-                color: activeFilter === f.id ? '#fff' : T.inkSoft,
-                border: activeFilter === f.id ? 'none' : `1px solid ${T.line}`,
-                fontSize: 13, fontWeight: 500, cursor: 'pointer',
-                fontFamily: T.fontSans, whiteSpace: 'nowrap',
-                WebkitTapHighlightColor: 'transparent',
-              }}
-            >
-              {f.label}
-            </motion.button>
-          ))}
         </div>
       </div>
 

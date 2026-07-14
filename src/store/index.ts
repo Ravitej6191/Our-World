@@ -6,8 +6,6 @@ import type { EmotionKind } from '../tokens';
 
 export interface AppSettings {
   faceId: boolean;
-  privateMode: boolean;
-  autoSave: boolean;
 }
 
 interface AppState {
@@ -22,11 +20,9 @@ interface AppState {
   settings: AppSettings;
   searchHistory: string[];
   isLoading: boolean;
-  isGuest: boolean;
 
-  completeOnboarding: (c: Child) => void;
-  setGuestMode: (v: boolean) => void;
-  addChildProfile: (c: Child) => void;
+  completeOnboarding: (c: Omit<Child, 'id'>) => void;
+  addChildProfile: (c: Omit<Child, 'id'>) => void;
   switchChildProfile: (idx: number) => void;
   setChild: (c: Partial<Child>) => void;
   addMemory: (m: Memory) => void;
@@ -50,36 +46,46 @@ const OLD_SEED: Record<string, string> = {
   roll:  'Mar 30, 2025',
 };
 
+function seedMilestonesForChild(childId: string): Milestone[] {
+  return MILESTONES.map((m) => ({ ...m, id: `${childId}:${m.id}`, childId }));
+}
+
 export const useStore = create<AppState>()(
   persist(
     (set) => ({
       onboardingDone: false,
-      child: { name: '', pronouns: 'she / her', colorIdx: 0 },
+      child: { id: '', name: '', pronouns: 'she / her', colorIdx: 0 },
       children: [],
       activeChildIdx: 0,
       memories: [],
       members: [],
       milestones: MILESTONES,
       toast: null,
-      settings: { faceId: false, privateMode: false, autoSave: true },
+      settings: { faceId: false },
       searchHistory: [],
       isLoading: false,
-      isGuest: false,
-
-      setGuestMode: (v) => set({ isGuest: v }),
 
       completeOnboarding: (c) =>
-        set(() => ({
-          onboardingDone: true,
-          child: c,
-          children: [c],
-          activeChildIdx: 0,
-        })),
+        set(() => {
+          const child: Child = { ...c, id: `child-${Date.now()}` };
+          return {
+            onboardingDone: true,
+            child,
+            children: [child],
+            activeChildIdx: 0,
+          };
+        }),
 
       addChildProfile: (c) =>
         set((s) => {
-          const children = [...s.children, c];
-          return { children, child: c, activeChildIdx: children.length - 1 };
+          const child: Child = { ...c, id: `child-${Date.now()}` };
+          const children = [...s.children, child];
+          return {
+            children,
+            child,
+            activeChildIdx: children.length - 1,
+            milestones: [...s.milestones, ...seedMilestonesForChild(child.id)],
+          };
         }),
 
       switchChildProfile: (idx) =>
@@ -100,7 +106,7 @@ export const useStore = create<AppState>()(
 
       addMemory: (m) => set((s) => {
         if (s.memories.some((x) => x.id === m.id)) return s;
-        return { memories: [m, ...s.memories] };
+        return { memories: [{ ...m, childId: s.child.id }, ...s.memories] };
       }),
       updateMemory: (m) => set((s) => ({ memories: s.memories.map((x) => (x.id === m.id ? m : x)) })),
       deleteMemory: (id) => set((s) => ({ memories: s.memories.filter((x) => x.id !== id) })),
@@ -127,17 +133,37 @@ export const useStore = create<AppState>()(
     }),
     {
       name: 'ourworld-store',
-      version: 1,
-      migrate: (persisted: unknown, version: number) => {
-        const state = persisted as { milestones?: Milestone[] } & Record<string, unknown>;
+      version: 2,
+      migrate: (persisted: unknown, version: number): unknown => {
+        let state = persisted as {
+          child?: Child;
+          children?: Child[];
+          milestones?: Milestone[];
+          settings?: Record<string, unknown>;
+        } & Record<string, unknown>;
+
         if (version < 1) {
           const milestones = (state.milestones ?? []).map((m) =>
             m.id in OLD_SEED && m.done && m.date === OLD_SEED[m.id]
               ? { ...m, done: false, date: '', tone: undefined, emotion: undefined }
               : m
           );
-          return { ...state, milestones };
+          state = { ...state, milestones };
         }
+
+        if (version < 2) {
+          // Give pre-multi-child profiles a stable id, and drop the retired
+          // privateMode/autoSave settings (private mode and storage toggles
+          // were removed from the app).
+          const legacyId = state.child?.id || 'legacy-0';
+          const child = state.child ? { ...state.child, id: state.child.id || legacyId } : state.child;
+          const children = (state.children ?? []).map((c) => ({ ...c, id: c.id || legacyId }));
+          const settingsRest = { ...(state.settings ?? {}) };
+          delete settingsRest.privateMode;
+          delete settingsRest.autoSave;
+          state = { ...state, child, children, settings: { faceId: false, ...settingsRest } };
+        }
+
         return state;
       },
       partialize: (state) => ({
@@ -150,7 +176,6 @@ export const useStore = create<AppState>()(
         members: state.members,
         settings: state.settings,
         searchHistory: state.searchHistory,
-        isGuest: state.isGuest,
       }),
     },
   ),

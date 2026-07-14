@@ -1,14 +1,16 @@
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { useHaptics } from '../hooks/useHaptics';
+import { GLASS_CHROME_BTN } from '../shared/constants';
 import type { Child } from '../types';
 
 export type ChildFlowMode = 'setup' | 'edit' | 'add';
 
 interface Props {
-  onDone: (child: Child) => void;
+  onDone: (child: Omit<Child, 'id'>) => void;
   onBack: () => void;
   mode?: ChildFlowMode;
   initialChild?: Child;
@@ -89,7 +91,20 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
   const [dobError, setDobError] = useState<string | null>(null);
   const [pronouns, setPronouns] = useState(initialChild?.pronouns ?? 'she / her');
   const [colorIdx] = useState(initialChild?.colorIdx ?? 0);
+  const [photoUri, setPhotoUri] = useState(initialChild?.photoUri);
   const total = 3;
+
+  const pickPhoto = async () => {
+    light();
+    try {
+      const photo = await Camera.getPhoto({
+        resultType: CameraResultType.DataUrl,
+        source: CameraSource.Prompt,
+        quality: 85,
+      });
+      if (photo.dataUrl) setPhotoUri(photo.dataUrl);
+    } catch { /* cancelled or permission denied */ }
+  };
 
   const dobFilled = dob.d && dob.m && dob.y;
   const canProceed =
@@ -105,7 +120,7 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
     }
     medium();
     if (step < total - 1) setStep(step + 1);
-    else onDone({ name: name.trim(), pronouns, colorIdx, dob });
+    else onDone({ name: name.trim(), pronouns, colorIdx, dob, photoUri });
   };
 
   // colorIdx is kept in state so existing profiles preserve their color on edit
@@ -263,16 +278,35 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
             flex: 1, display: 'flex', flexDirection: 'column',
             alignItems: 'center', justifyContent: 'center', textAlign: 'center', marginTop: -40,
           }}>
-            <div style={{
-              width: 128, height: 128, borderRadius: 64, marginBottom: 28,
-              background: `linear-gradient(135deg, ${pal.c1}, ${pal.c2})`,
-              border: `4px solid ${T.bg}`,
-              boxShadow: '0 12px 32px rgba(139,111,199,0.24)',
-              display: 'flex', alignItems: 'center', justifyContent: 'center',
-            }}>
-              <span style={{ fontFamily: T.fontSerif, fontStyle: 'italic', fontSize: 56, color: '#fff' }}>
-                {(name || 'M')[0].toUpperCase()}
-              </span>
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={pickPhoto}
+              style={{
+                position: 'relative', width: 128, height: 128, borderRadius: 64, marginBottom: 28,
+                background: photoUri ? 'transparent' : `linear-gradient(135deg, ${pal.c1}, ${pal.c2})`,
+                border: `4px solid ${T.bg}`, padding: 0, cursor: 'pointer',
+                boxShadow: '0 12px 32px rgba(139,111,199,0.24)',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                WebkitTapHighlightColor: 'transparent',
+              }}
+            >
+              {photoUri ? (
+                <img src={photoUri} style={{ width: '100%', height: '100%', borderRadius: 60, objectFit: 'cover' }} />
+              ) : (
+                <span style={{ fontFamily: T.fontSerif, fontStyle: 'italic', fontSize: 56, color: '#fff' }}>
+                  {(name || 'M')[0].toUpperCase()}
+                </span>
+              )}
+              <div style={{
+                position: 'absolute', right: -2, bottom: -2, width: 38, height: 38, borderRadius: 19,
+                background: T.ink, border: `3px solid ${T.bg}`,
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+              }}>
+                <Icon name="camera" size={16} color="#fff" strokeWidth={2} />
+              </div>
+            </motion.button>
+            <div style={{ fontSize: 12.5, color: T.inkMuted, marginBottom: 18, marginTop: -18 }}>
+              {photoUri ? 'Tap to change photo' : 'Tap to add a photo'}
             </div>
             <div style={{
               fontSize: 11, letterSpacing: '0.24em', textTransform: 'uppercase',
@@ -320,9 +354,4 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
   );
 }
 
-const chromeBtnStyle: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: T.card, border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0,
-};
+const chromeBtnStyle = GLASS_CHROME_BTN;

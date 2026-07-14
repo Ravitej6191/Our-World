@@ -1,4 +1,33 @@
-import type { EmotionKind } from '../tokens';
+import type { CSSProperties } from 'react';
+import { T, type EmotionKind } from '../tokens';
+
+// Consistent frosted-glass treatment for every screen header — same blur
+// recipe as TabBar so headers and the bottom nav read as one design system.
+export const GLASS_HEADER: CSSProperties = {
+  position: 'sticky', top: 0, zIndex: 5,
+  background: 'rgba(250,248,247,0.72)',
+  backdropFilter: 'blur(20px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(20px) saturate(180%)',
+  borderBottom: `1px solid ${T.lineSoft}`,
+};
+
+export const GLASS_CHROME_BTN: CSSProperties = {
+  width: 40, height: 40, borderRadius: 20,
+  background: 'rgba(255,255,255,0.7)',
+  backdropFilter: 'blur(12px) saturate(180%)',
+  WebkitBackdropFilter: 'blur(12px) saturate(180%)',
+  border: `1px solid ${T.lineSoft}`,
+  display: 'flex', alignItems: 'center', justifyContent: 'center',
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
+};
+
+// Memories/milestones created before multi-child support have no childId —
+// they're treated as belonging to the first child so nothing existing vanishes.
+export function filterByActiveChild<T extends { childId?: string }>(
+  items: T[], activeChildId: string, firstChildId: string,
+): T[] {
+  return items.filter((item) => (item.childId ?? firstChildId) === activeChildId);
+}
 
 // Returns { subject, object, possessive } for a pronouns string
 export function getPronouns(pronouns: string): { subject: string; object: string; possessive: string } {

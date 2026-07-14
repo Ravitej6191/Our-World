@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
@@ -6,7 +6,7 @@ import PhotoPlaceholder from '../components/PhotoPlaceholder';
 import VoiceWaveform from '../components/VoiceWaveform';
 import { EmotionChip } from '../components/EmotionGlyph';
 import { useHaptics } from '../hooks/useHaptics';
-import { CHILD_PALETTES } from '../shared/constants';
+import { CHILD_PALETTES, GLASS_HEADER, GLASS_CHROME_BTN } from '../shared/constants';
 import type { Memory, Child } from '../types';
 
 interface Props {
@@ -18,12 +18,7 @@ interface Props {
   onGoProfile: () => void;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const chromeBtn = GLASS_CHROME_BTN;
 
 const MONTH_NAMES = ['January','February','March','April','May','June',
   'July','August','September','October','November','December'];
@@ -231,11 +226,6 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
       m.dateShort === todayShort && !(m.group ?? '').includes(thisYear)
     ), [memories, todayShort, thisYear]);
 
-  const [mountTime] = useState(() => Date.now());
-  const fiveDaysAgo = mountTime - 5 * 24 * 60 * 60 * 1000;
-  const lastMemoryTs = memories[0]?.createdAt ?? 0;
-  const showNudge = memories.length > 0 && lastMemoryTs > 0 && lastMemoryTs < fiveDaysAgo;
-
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -264,8 +254,8 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
 
       {/* Header */}
       <div style={{
+        ...GLASS_HEADER,
         padding: `calc(${T.safeTop} + 12px) 24px 16px`, flexShrink: 0,
-        position: 'relative', zIndex: 1,
       }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
           <div style={{ flex: 1 }}>
@@ -291,12 +281,16 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
             <motion.button
               whileTap={{ scale: 0.9 }}
               onClick={() => { light(); onGoProfile(); }}
-              style={{ ...chromeBtn, background: avatarGrad, border: 'none' }}
+              style={{ ...chromeBtn, background: child.photoUri ? 'transparent' : avatarGrad, border: 'none', overflow: 'hidden' }}
             >
-              <span style={{
-                fontFamily: T.fontSerif, fontStyle: 'italic',
-                fontSize: 16, color: '#fff', fontWeight: 400,
-              }}>{initial}</span>
+              {child.photoUri ? (
+                <img src={child.photoUri} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+              ) : (
+                <span style={{
+                  fontFamily: T.fontSerif, fontStyle: 'italic',
+                  fontSize: 16, color: '#fff', fontWeight: 400,
+                }}>{initial}</span>
+              )}
             </motion.button>
           </div>
         </div>
@@ -307,26 +301,6 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
       }}>
-
-        {/* Memory nudge */}
-        <AnimatePresence>
-          {showNudge && (
-            <motion.div
-              initial={{ opacity: 0, y: -8 }}
-              animate={{ opacity: 1, y: 0 }}
-              exit={{ opacity: 0 }}
-              style={{
-                background: T.bgCool, borderRadius: 16, padding: '12px 16px',
-                display: 'flex', alignItems: 'center', gap: 12, marginBottom: 16,
-              }}
-            >
-              <span style={{ fontSize: 20 }}>✦</span>
-              <div style={{ fontSize: 13.5, color: T.inkSoft, lineHeight: 1.4 }}>
-                What has {child.name || 'them'} been up to lately?
-              </div>
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         {/* On this day */}
         <AnimatePresence>

@@ -19,6 +19,9 @@ export interface Memory {
   mediaUri?: string;
   posterUri?: string;
   createdAt?: number;
+  // Absent on memories created before multi-child support — treated as
+  // belonging to the first child (see useStore's activeChildId fallback).
+  childId?: string;
 }
 
 export interface Milestone {
@@ -28,6 +31,7 @@ export interface Milestone {
   done: boolean;
   tone?: string;
   emotion?: EmotionKind;
+  childId?: string;
 }
 
 export interface FamilyMember {
@@ -45,10 +49,12 @@ export interface FamilyMember {
 }
 
 export interface Child {
+  id: string;
   name: string;
   pronouns: string;
   colorIdx: number;
   dob?: { m: string; d: string; y: string };
+  photoUri?: string;
 }
 
 export interface ToastState {

@@ -1,12 +1,13 @@
-import React from 'react';
-import { motion } from 'framer-motion';
+import React, { useMemo } from 'react';
+import { motion, type PanInfo } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
+import Toggle from '../components/Toggle';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
-import { CHILD_PALETTES } from '../shared/constants';
+import { CHILD_PALETTES, GLASS_HEADER, GLASS_CHROME_BTN, filterByActiveChild } from '../shared/constants';
 import type { Child } from '../types';
 
 interface Props {
@@ -14,9 +15,7 @@ interface Props {
   children: Child[];
   onBack: () => void;
   onEdit: () => void;
-  onOpenSettings: () => void;
   onOpenKeepsake: () => void;
-  onSwitchChild: () => void;
   onAddChild: () => void;
   memoriesCount: number;
 }
@@ -45,35 +44,29 @@ function formatDob(dob?: { m: string; d: string; y: string }): string {
   return `born ${dob.d} ${m} ${dob.y}`;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const ITEM_W = 96;
 
 export default function ProfileScreen({
-  child, children, onBack, onEdit, onOpenSettings,
-  onOpenKeepsake, onSwitchChild, onAddChild, memoriesCount,
+  child, children, onBack, onEdit, onOpenKeepsake, onAddChild, memoriesCount,
 }: Props) {
   const { light, medium } = useHaptics();
-  const milestones = useStore((s) => s.milestones);
+  const allMilestones = useStore((s) => s.milestones);
+  const firstChildId = useStore((s) => s.children[0]?.id ?? s.child.id);
+  const milestones = useMemo(
+    () => filterByActiveChild(allMilestones, child.id, firstChildId),
+    [allMilestones, child.id, firstChildId],
+  );
   const showToast = useStore((s) => s.showToast);
-  const isGuest = useStore((s) => s.isGuest);
-  const setGuestMode = useStore((s) => s.setGuestMode);
+  const settings = useStore((s) => s.settings);
+  const updateSettings = useStore((s) => s.updateSettings);
+  const switchChildProfile = useStore((s) => s.switchChildProfile);
+  const activeChildIdx = useStore((s) => s.activeChildIdx);
   const doneMilestones = milestones.filter((m) => m.done);
-  const avatarGrad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
-  const initial = (child.name || 'M')[0].toUpperCase();
   const ageText = computeAge(child.dob);
   const dobText = formatDob(child.dob);
   const currentYear = new Date().getFullYear();
-  const hasMultipleChildren = children.length > 1;
 
   const handleSignOut = async () => {
-    if (isGuest) {
-      setGuestMode(false);
-      return;
-    }
     try {
       await signOut(auth);
     } catch {
@@ -81,26 +74,15 @@ export default function ProfileScreen({
     }
   };
 
-  const PROFILE_ROWS = [
-    {
-      icon: 'heart',
-      label: 'Yearly keepsake book',
-      sub: `Your ${currentYear} in memories`,
-      action: onOpenKeepsake,
-    },
-    {
-      icon: 'sun',
-      label: 'Settings',
-      sub: 'Privacy, backup, account',
-      action: onOpenSettings,
-    },
-    {
-      icon: hasMultipleChildren ? 'users' : 'plus',
-      label: hasMultipleChildren ? 'Switch child' : 'Add another child',
-      sub: hasMultipleChildren ? `${children.length} profiles` : 'Set up another profile',
-      action: hasMultipleChildren ? onSwitchChild : onAddChild,
-    },
-  ];
+  const handleDragEnd = (_e: unknown, info: PanInfo) => {
+    if ((info.offset.x < -40 || info.velocity.x < -400) && activeChildIdx < children.length - 1) {
+      light();
+      switchChildProfile(activeChildIdx + 1);
+    } else if ((info.offset.x > 40 || info.velocity.x > 400) && activeChildIdx > 0) {
+      light();
+      switchChildProfile(activeChildIdx - 1);
+    }
+  };
 
   return (
     <motion.div
@@ -127,53 +109,115 @@ export default function ProfileScreen({
 
       {/* Top chrome */}
       <div style={{
-        padding: `calc(${T.safeTop} + 12px) 20px 0`,
+        ...GLASS_HEADER,
+        padding: `calc(${T.safeTop} + 12px) 20px 12px`,
         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-        position: 'relative', zIndex: 1,
       }}>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={GLASS_CHROME_BTN}>
           <Icon name="back" size={20} color={T.ink} />
         </motion.button>
-        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onEdit(); }} style={chromeBtn}>
+        <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onEdit(); }} style={GLASS_CHROME_BTN}>
           <Icon name="edit" size={18} color={T.ink} />
         </motion.button>
       </div>
 
-      {/* Avatar + name */}
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center',
-        padding: '28px 24px 0', position: 'relative', zIndex: 1,
-      }}>
-        <motion.div
-          whileTap={{ scale: 0.96 }}
-          onClick={() => { light(); onEdit(); }}
-          style={{
-            width: 110, height: 110, borderRadius: 55,
-            background: avatarGrad,
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            boxShadow: '0 8px 28px rgba(139,111,199,0.22)',
-            marginBottom: 16, cursor: 'pointer',
-          }}
-        >
-          <span style={{
-            fontFamily: T.fontSerif, fontStyle: 'italic',
-            fontSize: 48, color: '#fff', fontWeight: 400,
-          }}>{initial}</span>
-        </motion.div>
+      {/* Swipeable child carousel */}
+      <div style={{ padding: '24px 0 0', position: 'relative', zIndex: 1 }}>
+        <div style={{ overflow: 'hidden', position: 'relative', height: 128 }}>
+          <motion.div
+            drag={children.length > 1 ? 'x' : false}
+            dragConstraints={{ left: -Math.max(children.length - 1, 0) * ITEM_W, right: 0 }}
+            dragElastic={0.12}
+            animate={{ x: -activeChildIdx * ITEM_W }}
+            transition={{ type: 'spring', stiffness: 300, damping: 30 }}
+            onDragEnd={handleDragEnd}
+            style={{
+              display: 'flex', width: 'fit-content',
+              paddingLeft: `calc(50% - ${ITEM_W / 2}px)`,
+              cursor: children.length > 1 ? 'grab' : 'default', touchAction: 'pan-y',
+            }}
+          >
+            {children.map((c, idx) => {
+              const isActive = idx === activeChildIdx;
+              const grad = CHILD_PALETTES[c.colorIdx % CHILD_PALETTES.length];
+              const init = (c.name || '?')[0].toUpperCase();
+              return (
+                <motion.button
+                  key={c.id}
+                  whileTap={{ scale: isActive ? 0.96 : 0.9 }}
+                  onClick={() => { if (!isActive) { light(); switchChildProfile(idx); } }}
+                  animate={{ scale: isActive ? 1 : 0.7, opacity: isActive ? 1 : 0.45 }}
+                  transition={{ type: 'spring', stiffness: 300, damping: 26 }}
+                  style={{
+                    width: ITEM_W, flexShrink: 0, background: 'none', border: 'none', cursor: 'pointer',
+                    display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 10,
+                    WebkitTapHighlightColor: 'transparent',
+                  }}
+                >
+                  <div style={{
+                    width: 92, height: 92, borderRadius: 46,
+                    background: c.photoUri ? 'transparent' : grad,
+                    overflow: 'hidden',
+                    display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    boxShadow: isActive ? '0 8px 28px rgba(139,111,199,0.24)' : 'none',
+                  }}>
+                    {c.photoUri ? (
+                      <img src={c.photoUri} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                    ) : (
+                      <span style={{ fontFamily: T.fontSerif, fontStyle: 'italic', fontSize: 36, color: '#fff' }}>{init}</span>
+                    )}
+                  </div>
+                </motion.button>
+              );
+            })}
+          </motion.div>
+        </div>
 
         <div style={{
-          fontFamily: T.fontSerif, fontStyle: 'italic',
-          fontSize: 30, color: T.ink, marginBottom: 8, letterSpacing: '-0.02em',
-        }}>{child.name}</div>
+          display: 'flex', flexDirection: 'column', alignItems: 'center',
+          padding: '4px 24px 0', position: 'relative', zIndex: 1,
+        }}>
+          <div style={{
+            fontFamily: T.fontSerif, fontStyle: 'italic',
+            fontSize: 28, color: T.ink, marginBottom: 8, letterSpacing: '-0.02em',
+          }}>{child.name}</div>
 
-        <div style={{ fontSize: 13, color: T.inkMuted, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
-          {child.pronouns && (
-            <span style={{
-              background: T.bgCool, borderRadius: 999,
-              padding: '2px 10px', fontSize: 12, color: T.lavenderDeep,
-            }}>{child.pronouns}</span>
+          <div style={{ fontSize: 13, color: T.inkMuted, display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap', justifyContent: 'center' }}>
+            {child.pronouns && (
+              <span style={{
+                background: T.bgCool, borderRadius: 999,
+                padding: '2px 10px', fontSize: 12, color: T.lavenderDeep,
+              }}>{child.pronouns}</span>
+            )}
+            {[ageText, dobText].filter(Boolean).join(' · ')}
+          </div>
+
+          {children.length > 1 && (
+            <div style={{ display: 'flex', gap: 5, marginTop: 12 }}>
+              {children.map((c, idx) => (
+                <div key={c.id} style={{
+                  width: idx === activeChildIdx ? 16 : 5, height: 5, borderRadius: 3,
+                  background: idx === activeChildIdx ? T.lavenderDeep : T.line,
+                  transition: 'width 0.2s',
+                }} />
+              ))}
+            </div>
           )}
-          {[ageText, dobText].filter(Boolean).join(' · ')}
+
+          <motion.button
+            whileTap={{ scale: 0.95 }}
+            onClick={() => { medium(); onAddChild(); }}
+            style={{
+              marginTop: 16, background: 'none', border: `1.5px dashed ${T.line}`,
+              borderRadius: 999, padding: '7px 16px', cursor: 'pointer',
+              display: 'flex', alignItems: 'center', gap: 6,
+              fontSize: 12.5, color: T.inkMuted, fontFamily: T.fontSans,
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <Icon name="plus" size={13} color={T.inkMuted} strokeWidth={2} />
+            Add another child
+          </motion.button>
         </div>
       </div>
 
@@ -202,61 +246,64 @@ export default function ProfileScreen({
         </div>
       </div>
 
-      {/* Quick links */}
+      {/* Keepsake book */}
       <div style={{ padding: '24px 20px 0', position: 'relative', zIndex: 1 }}>
         <div style={{
           background: T.card, borderRadius: 18, overflow: 'hidden',
           boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
         }}>
-          {PROFILE_ROWS.map((row, i, arr) => (
-            <React.Fragment key={row.label}>
-              <motion.button
-                whileTap={{ scale: 0.99, backgroundColor: T.bgCool }}
-                onClick={() => { light(); row.action(); }}
-                style={{
-                  width: '100%', display: 'flex', alignItems: 'center', gap: 14,
-                  padding: '15px 16px', background: 'none', border: 'none',
-                  cursor: 'pointer', textAlign: 'left',
-                  WebkitTapHighlightColor: 'transparent',
-                }}
-              >
-                <div style={{
-                  width: 36, height: 36, borderRadius: 12, background: T.bgCool,
-                  display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                }}>
-                  <Icon name={row.icon} size={16} color={T.lavenderDeep} />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <div style={{ fontSize: 14.5, fontWeight: 500, color: T.ink }}>{row.label}</div>
-                  <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 1 }}>{row.sub}</div>
-                </div>
-                <Icon name="chevron" size={14} color={T.inkFaint} />
-              </motion.button>
-              {i < arr.length - 1 && (
-                <div style={{ height: 1, background: T.lineSoft, marginLeft: 66 }} />
-              )}
-            </React.Fragment>
-          ))}
+          <motion.button
+            whileTap={{ scale: 0.99, backgroundColor: T.bgCool }}
+            onClick={() => { light(); onOpenKeepsake(); }}
+            style={{
+              width: '100%', display: 'flex', alignItems: 'center', gap: 14,
+              padding: '15px 16px', background: 'none', border: 'none',
+              cursor: 'pointer', textAlign: 'left',
+              WebkitTapHighlightColor: 'transparent',
+            }}
+          >
+            <div style={{
+              width: 36, height: 36, borderRadius: 12, background: T.bgCool,
+              display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+            }}>
+              <Icon name="heart" size={16} color={T.lavenderDeep} />
+            </div>
+            <div style={{ flex: 1 }}>
+              <div style={{ fontSize: 14.5, fontWeight: 500, color: T.ink }}>Yearly keepsake book</div>
+              <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 1 }}>Your {currentYear} in memories</div>
+            </div>
+            <Icon name="chevron" size={14} color={T.inkFaint} />
+          </motion.button>
         </div>
       </div>
 
-      {/* Guest badge */}
-      {isGuest && (
-        <div style={{ padding: '16px 20px 0', position: 'relative', zIndex: 1 }}>
+      {/* Security */}
+      <div style={{ padding: '20px 20px 0', position: 'relative', zIndex: 1 }}>
+        <div style={{
+          fontSize: 11, letterSpacing: '0.18em', textTransform: 'uppercase',
+          color: T.inkMuted, marginBottom: 10, paddingLeft: 4,
+        }}>Security</div>
+        <div style={{
+          background: T.card, borderRadius: 18,
+          boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
+          padding: '13px 16px', display: 'flex', alignItems: 'center', gap: 14,
+        }}>
           <div style={{
-            background: T.bgCool, borderRadius: 14, padding: '12px 16px',
-            display: 'flex', alignItems: 'center', gap: 10,
+            width: 36, height: 36, borderRadius: 12, background: T.bgCool,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
           }}>
-            <Icon name="info" size={15} color={T.lavenderDeep} />
-            <div style={{ fontSize: 13, color: T.inkSoft, lineHeight: 1.45 }}>
-              Memories are saved locally. Sign in to back up to the cloud.
-            </div>
+            <Icon name="lock" size={16} color={T.lavenderDeep} />
           </div>
+          <div style={{ flex: 1 }}>
+            <div style={{ fontSize: 14.5, fontWeight: 500, color: T.ink }}>Face ID / Touch ID</div>
+            <div style={{ fontSize: 12, color: T.inkMuted, marginTop: 1 }}>Require biometrics to open</div>
+          </div>
+          <Toggle value={settings.faceId} onChange={(v) => updateSettings({ faceId: v })} />
         </div>
-      )}
+      </div>
 
-      {/* Sign Out / Leave guest mode */}
-      <div style={{ padding: '12px 20px 0', position: 'relative', zIndex: 1 }}>
+      {/* Sign out */}
+      <div style={{ padding: '16px 20px 0', position: 'relative', zIndex: 1 }}>
         <motion.button
           whileTap={{ scale: 0.97 }}
           onClick={() => { medium(); handleSignOut(); }}
@@ -270,23 +317,19 @@ export default function ProfileScreen({
           }}
         >
           <Icon name="logout" size={17} color={T.inkSoft} />
-          {isGuest ? 'Leave guest mode' : 'Sign out'}
+          Sign out
         </motion.button>
       </div>
 
-      {/* Quote */}
-      <div style={{ padding: '20px 20px 110px', position: 'relative', zIndex: 1 }}>
+      {/* Footer credit */}
+      <div style={{
+        padding: '28px 20px 110px', textAlign: 'center', position: 'relative', zIndex: 1,
+      }}>
         <div style={{
-          background: T.bgCool, borderRadius: 18,
-          padding: '20px 22px', textAlign: 'center',
+          fontFamily: T.fontSerif, fontStyle: 'italic',
+          fontSize: 13.5, color: T.inkFaint,
         }}>
-          <div style={{
-            fontFamily: T.fontSerif, fontStyle: 'italic',
-            fontSize: 15.5, color: T.inkSoft, lineHeight: 1.7,
-          }}>
-            "The days are long, but the years are short."
-          </div>
-          <div style={{ fontSize: 12, color: T.inkFaint, marginTop: 8 }}>Gretchen Rubin</div>
+          built with love by you mama and dada
         </div>
       </div>
     </motion.div>

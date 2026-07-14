@@ -4,7 +4,7 @@ import { T } from '../tokens';
 import Icon from '../components/Icon';
 import EmotionGlyph from '../components/EmotionGlyph';
 import { useHaptics } from '../hooks/useHaptics';
-import { getMilestoneCopy } from '../shared/constants';
+import { getMilestoneCopy, GLASS_CHROME_BTN } from '../shared/constants';
 import type { Milestone, Memory } from '../types';
 
 interface Props {
@@ -15,12 +15,7 @@ interface Props {
   onOpenMemory?: (id: string) => void;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const chromeBtn = GLASS_CHROME_BTN;
 
 export default function MilestoneDetailScreen({ milestone, memories, onBack, onAddMemory, onOpenMemory }: Props) {
   const { light, medium } = useHaptics();

@@ -7,11 +7,6 @@ import { db, auth } from '../firebase';
 import { useStore, type AppSettings } from '../store';
 import type { Memory, Milestone, FamilyMember, Child } from '../types';
 
-function mergeLocalOnly<T extends { id: string }>(remote: T[], local: T[]): T[] {
-  const remoteIds = new Set(remote.map((x) => x.id));
-  return [...remote, ...local.filter((x) => !remoteIds.has(x.id))];
-}
-
 export function useFirestoreSync() {
   const memories = useStore((s) => s.memories);
   const milestones = useStore((s) => s.milestones);
@@ -38,11 +33,6 @@ export function useFirestoreSync() {
 
     async function loadFromFirestore(userId: string) {
       if (initialLoadDone.current) return;
-      // A guest converting to a signed-in account may have local-only memories
-      // that predate this load — merge them in rather than discarding them.
-      const wasGuest = useStore.getState().isGuest;
-      const localMemories = useStore.getState().memories;
-      const localMembers = useStore.getState().members;
       useStore.setState({ isLoading: true });
       try {
         let ownerId = userId;
@@ -69,7 +59,7 @@ export function useFirestoreSync() {
         remoteMemories.sort((a, b) => (b._ts ?? 0) - (a._ts ?? 0));
         syncedMemoryIdsRef.current = new Set(remoteMemories.map((m) => m.id));
         if (!memoriesSnap.empty) {
-          useStore.setState({ memories: wasGuest ? mergeLocalOnly(remoteMemories, localMemories) : remoteMemories });
+          useStore.setState({ memories: remoteMemories });
         }
 
         if (!milestonesSnap.empty) {
@@ -80,12 +70,13 @@ export function useFirestoreSync() {
         const remoteMembers = membersSnap.docs.map((d) => d.data() as FamilyMember);
         syncedMemberIdsRef.current = new Set(remoteMembers.map((m) => m.id));
         if (!membersSnap.empty) {
-          useStore.setState({ members: wasGuest ? mergeLocalOnly(remoteMembers, localMembers) : remoteMembers });
+          useStore.setState({ members: remoteMembers });
         }
 
         if (!childSnap.empty) {
           const childData = childSnap.docs[0]?.data() as Child | undefined;
-          if (childData) useStore.setState({ child: childData });
+          // Backfill an id for profiles synced before multi-child support existed.
+          if (childData) useStore.setState({ child: { ...childData, id: childData.id || 'legacy-0' } });
         }
         if (!settingsSnap.empty) {
           const settingsData = settingsSnap.docs[0]?.data() as AppSettings | undefined;
@@ -125,7 +116,6 @@ export function useFirestoreSync() {
     if (!initialLoadDone.current) return;
     const ownerId = ownerIdRef.current ?? auth.currentUser?.uid;
     if (!ownerId) return;
-    if (!settings.autoSave) return;
 
     if (debounceRef.current) clearTimeout(debounceRef.current);
     debounceRef.current = setTimeout(() => {

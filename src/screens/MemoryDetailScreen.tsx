@@ -9,6 +9,7 @@ import EmotionGlyph from '../components/EmotionGlyph';
 import VoiceWaveform from '../components/VoiceWaveform';
 import { useHaptics } from '../hooks/useHaptics';
 import { useStore } from '../store';
+import { GLASS_CHROME_BTN } from '../shared/constants';
 import type { Memory } from '../types';
 
 interface Props {
@@ -18,12 +19,7 @@ interface Props {
   onSave: (m: Memory) => void;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const chromeBtn = GLASS_CHROME_BTN;
 
 const EMOTIONS_LIST = Object.entries(EMOTIONS) as [EmotionKind, (typeof EMOTIONS)[EmotionKind]][];
 

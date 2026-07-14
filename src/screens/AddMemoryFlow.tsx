@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
 import { T, EMOTIONS, type EmotionKind } from '../tokens';
@@ -9,7 +9,7 @@ import EmotionGlyph from '../components/EmotionGlyph';
 import Toggle from '../components/Toggle';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
-import { getPronouns } from '../shared/constants';
+import { getPronouns, filterByActiveChild, GLASS_CHROME_BTN } from '../shared/constants';
 import { uploadToCloudinary, cloudinaryConfigured } from '../lib/cloudinary';
 
 interface Props {
@@ -43,12 +43,7 @@ interface SpeechRecognitionWindow {
   webkitSpeechRecognition?: new () => SpeechRecognitionLike;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const chromeBtn = GLASS_CHROME_BTN;
 
 const MEDIA_OPTIONS: { type: MediaType; icon: string; label: string; sub: string; color: string; bg: string }[] = [
   { type: 'photo',  icon: 'camera', label: 'Photo',  sub: 'Camera or library',    color: T.lavenderDeep, bg: '#ede5f8' },
@@ -297,7 +292,13 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
 }
 
 export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: Props) {
-  const milestones = useStore((s) => s.milestones);
+  const allMilestones = useStore((s) => s.milestones);
+  const activeChildId = useStore((s) => s.child.id);
+  const firstChildId = useStore((s) => s.children[0]?.id ?? s.child.id);
+  const milestones = useMemo(
+    () => filterByActiveChild(allMilestones, activeChildId, firstChildId),
+    [allMilestones, activeChildId, firstChildId],
+  );
   const child = useStore((s) => s.child);
   const { possessive } = getPronouns(child.pronouns);
   const [step, setStep] = useState<Step>('pick');

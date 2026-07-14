@@ -4,7 +4,7 @@ import { T } from '../tokens';
 import Icon from '../components/Icon';
 import { useStore } from '../store';
 import { useHaptics } from '../hooks/useHaptics';
-import { getPronouns } from '../shared/constants';
+import { getPronouns, GLASS_HEADER, GLASS_CHROME_BTN } from '../shared/constants';
 import type { FamilyMember } from '../types';
 
 interface Props {
@@ -13,12 +13,7 @@ interface Props {
   onInvite: () => void;
 }
 
-const chromeBtn: React.CSSProperties = {
-  width: 40, height: 40, borderRadius: 20,
-  background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
-  display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
-};
+const chromeBtn = GLASS_CHROME_BTN;
 
 function MemberRow({ member, onOpen }: { member: FamilyMember; onOpen: () => void }) {
   const { light } = useHaptics();
@@ -85,7 +80,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
       }} />
 
       {/* Header */}
-      <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 0`, flexShrink: 0, position: 'relative', zIndex: 1 }}>
+      <div style={{ ...GLASS_HEADER, padding: `calc(${T.safeTop} + 12px) 24px 16px`, flexShrink: 0 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 22 }}>
           <motion.button whileTap={{ scale: 0.9 }} onClick={() => { light(); onBack(); }} style={chromeBtn}>
             <Icon name="back" size={20} color={T.ink} />
