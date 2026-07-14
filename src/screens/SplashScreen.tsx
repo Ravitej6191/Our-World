@@ -51,7 +51,8 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
       try {
         await signInWithRedirect(auth, googleProvider);
         // Page navigates away; getRedirectResult picks it up on return
-      } catch {
+      } catch (e) {
+        console.error('[Auth] signInWithRedirect (mobile) failed:', e);
         setError(true);
         setLoading(false);
       }
@@ -61,6 +62,7 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
     try {
       await signInWithPopup(auth, googleProvider);
     } catch (e) {
+      console.error('[Auth] signInWithPopup failed:', e);
       const code = (e as { code?: string } | undefined)?.code;
       const needsRedirect =
         code === 'auth/popup-blocked' ||
@@ -69,7 +71,8 @@ export default function SplashScreen({ isAuthed, onContinue }: Props) {
       if (needsRedirect) {
         try {
           await signInWithRedirect(auth, googleProvider);
-        } catch {
+        } catch (e2) {
+          console.error('[Auth] signInWithRedirect (fallback) failed:', e2);
           setError(true);
           setLoading(false);
         }
