@@ -1,5 +1,5 @@
 import React from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 import { signOut } from 'firebase/auth';
 import { auth } from '../firebase';
 import { T } from '../tokens';
@@ -49,7 +49,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 export default function ProfileScreen({
@@ -111,7 +111,7 @@ export default function ProfileScreen({
         position: 'absolute', inset: 0, background: T.bg,
         fontFamily: T.fontSans, overflowY: 'auto',
         scrollbarWidth: 'none',
-      } as any}
+      }}
     >
       {/* Decorative background orbs */}
       <div style={{
@@ -217,7 +217,7 @@ export default function ProfileScreen({
                   width: '100%', display: 'flex', alignItems: 'center', gap: 14,
                   padding: '15px 16px', background: 'none', border: 'none',
                   cursor: 'pointer', textAlign: 'left',
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <div style={{
@@ -266,7 +266,7 @@ export default function ProfileScreen({
             color: T.inkSoft, fontSize: 14.5, fontWeight: 500,
             fontFamily: T.fontSans, cursor: 'pointer',
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-            WebkitTapHighlightColor: 'transparent' as any,
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           <Icon name="logout" size={17} color={T.inkSoft} />

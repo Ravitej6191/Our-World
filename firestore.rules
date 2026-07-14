@@ -1,0 +1,96 @@
+rules_version = '2';
+
+// Deploy with: firebase deploy --only firestore:rules
+//
+// Data model (see src/hooks/useFirestore.ts and src/screens/InviteAcceptScreen.tsx):
+//   users/{ownerId}                      — pointer doc: { dataOwnerId } (defaults to own uid)
+//   users/{ownerId}/child/profile        — the child's profile
+//   users/{ownerId}/settings/main        — app settings (owner-only)
+//   users/{ownerId}/milestones/{id}      — shared milestone list
+//   users/{ownerId}/memories/{id}        — the timeline
+//   users/{ownerId}/members/{memberUid}  — accepted family members, keyed by their own uid
+//   invites/{token}                      — invite links, keyed by a crypto.randomUUID() token
+//   invites/{token}/acceptances/{uid}    — audit trail of who accepted
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function isSignedIn() {
+      return request.auth != null;
+    }
+
+    function isOwner(ownerId) {
+      return isSignedIn() && request.auth.uid == ownerId;
+    }
+
+    function memberDoc(ownerId) {
+      return get(/databases/$(database)/documents/users/$(ownerId)/members/$(request.auth.uid));
+    }
+
+    function isAcceptedMember(ownerId) {
+      return isSignedIn() &&
+        exists(/databases/$(database)/documents/users/$(ownerId)/members/$(request.auth.uid));
+    }
+
+    function canAddToFamily(ownerId) {
+      return isAcceptedMember(ownerId) && memberDoc(ownerId).data.canAdd == true;
+    }
+
+    // Per-user root pointer — only the account itself may read/write it.
+    match /users/{uid} {
+      allow read, write: if isOwner(uid);
+    }
+
+    match /users/{ownerId}/child/{docId} {
+      allow read: if isOwner(ownerId) || isAcceptedMember(ownerId);
+      allow write: if isOwner(ownerId);
+    }
+
+    match /users/{ownerId}/settings/{docId} {
+      allow read: if isOwner(ownerId) || isAcceptedMember(ownerId);
+      allow write: if isOwner(ownerId);
+    }
+
+    match /users/{ownerId}/milestones/{docId} {
+      allow read: if isOwner(ownerId) || isAcceptedMember(ownerId);
+      // Marking a milestone done happens automatically when an accepted
+      // member adds a milestone-tagged memory, so members need write too.
+      allow write: if isOwner(ownerId) || isAcceptedMember(ownerId);
+    }
+
+    match /users/{ownerId}/memories/{docId} {
+      allow read: if isOwner(ownerId) || isAcceptedMember(ownerId);
+      allow create, update, delete: if isOwner(ownerId) || canAddToFamily(ownerId);
+    }
+
+    match /users/{ownerId}/members/{memberUid} {
+      allow read: if isOwner(ownerId) || isAcceptedMember(ownerId);
+      // The owner can add/edit anyone. Otherwise a user may only create their
+      // *own* membership record, and only if it's backed by a real, unexpired
+      // invite for this exact owner (see viaToken in InviteAcceptScreen).
+      allow create: if isOwner(ownerId) || (
+        isSignedIn() &&
+        request.auth.uid == memberUid &&
+        request.resource.data.id == memberUid &&
+        get(/databases/$(database)/documents/invites/$(request.resource.data.viaToken)).data.ownerId == ownerId &&
+        get(/databases/$(database)/documents/invites/$(request.resource.data.viaToken)).data.expiresAt > request.time.toMillis()
+      );
+      allow update: if isOwner(ownerId);
+      // Owner can revoke anyone; a member can remove themselves (leave the family).
+      allow delete: if isOwner(ownerId) || (isSignedIn() && request.auth.uid == memberUid);
+    }
+
+    match /invites/{token} {
+      // Token is the secret (crypto.randomUUID()); reading needs no auth so
+      // the "you've been invited" preview works before sign-in.
+      allow read: if true;
+      allow create: if isSignedIn() && request.resource.data.ownerId == request.auth.uid;
+      allow update, delete: if isOwner(resource.data.ownerId);
+
+      match /acceptances/{uid} {
+        allow read: if isOwner(get(/databases/$(database)/documents/invites/$(token)).data.ownerId);
+        allow create: if isSignedIn() && request.auth.uid == uid;
+      }
+    }
+  }
+}

@@ -128,16 +128,17 @@ export const useStore = create<AppState>()(
     {
       name: 'ourworld-store',
       version: 1,
-      migrate: (persisted: any, version: number) => {
+      migrate: (persisted: unknown, version: number) => {
+        const state = persisted as { milestones?: Milestone[] } & Record<string, unknown>;
         if (version < 1) {
-          const milestones = (persisted.milestones ?? []).map((m: any) =>
+          const milestones = (state.milestones ?? []).map((m) =>
             m.id in OLD_SEED && m.done && m.date === OLD_SEED[m.id]
               ? { ...m, done: false, date: '', tone: undefined, emotion: undefined }
               : m
           );
-          return { ...persisted, milestones };
+          return { ...state, milestones };
         }
-        return persisted;
+        return state;
       },
       partialize: (state) => ({
         onboardingDone: state.onboardingDone,

@@ -26,7 +26,7 @@ function SettingsRow({ icon, label, sub, right, onPress }: {
         width: '100%', display: 'flex', alignItems: 'center', gap: 12,
         padding: '13px 16px', background: 'none',
         border: 'none', cursor: onPress ? 'pointer' : 'default', textAlign: 'left',
-        WebkitTapHighlightColor: 'transparent' as any,
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       <div style={{
@@ -34,7 +34,7 @@ function SettingsRow({ icon, label, sub, right, onPress }: {
         background: T.bgCool,
         display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
       }}>
-        <Icon name={icon as any} size={17} color={T.lavenderDeep} />
+        <Icon name={icon} size={17} color={T.lavenderDeep} />
       </div>
       <div style={{ flex: 1 }}>
         <div style={{ fontSize: 14.5, fontWeight: 500, color: T.ink }}>{label}</div>

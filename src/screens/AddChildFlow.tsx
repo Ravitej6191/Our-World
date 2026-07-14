@@ -88,7 +88,7 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
   const [dob, setDob] = useState(initialChild?.dob ?? { d: '', m: '', y: '' });
   const [dobError, setDobError] = useState<string | null>(null);
   const [pronouns, setPronouns] = useState(initialChild?.pronouns ?? 'she / her');
-  const [colorIdx, setColorIdx] = useState(initialChild?.colorIdx ?? 0);
+  const [colorIdx] = useState(initialChild?.colorIdx ?? 0);
   const total = 3;
 
   const dobFilled = dob.d && dob.m && dob.y;
@@ -109,7 +109,11 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
   };
 
   // colorIdx is kept in state so existing profiles preserve their color on edit
-  const prev = () => { light(); step > 0 ? setStep(step - 1) : onBack(); };
+  const prev = () => {
+    light();
+    if (step > 0) setStep(step - 1);
+    else onBack();
+  };
 
   const pal = PALETTES[colorIdx];
 
@@ -203,7 +207,7 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
                       color: pronouns === p.value ? '#fff' : T.inkSoft,
                       fontSize: 14, fontWeight: pronouns === p.value ? 600 : 400,
                       cursor: 'pointer', fontFamily: T.fontSans,
-                      WebkitTapHighlightColor: 'transparent' as any,
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                   >
                     {p.label}
@@ -305,7 +309,7 @@ export default function AddChildFlow({ onDone, onBack, mode = 'setup', initialCh
             fontSize: 15.5, fontWeight: 500, fontFamily: T.fontSans,
             display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             transition: 'background 0.15s',
-            WebkitTapHighlightColor: 'transparent' as any,
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           {ctaLabel()}

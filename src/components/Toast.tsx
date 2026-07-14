@@ -13,7 +13,7 @@ export default function Toast({ toast, onDone }: Props) {
     if (!toast) return;
     const t = setTimeout(onDone, 2400);
     return () => clearTimeout(t);
-  }, [toast]);
+  }, [toast, onDone]);
 
   const isError = toast?.variant === 'error';
 

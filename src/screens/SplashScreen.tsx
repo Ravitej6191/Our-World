@@ -61,11 +61,12 @@ export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Prop
 
     try {
       await signInWithPopup(auth, googleProvider);
-    } catch (e: any) {
+    } catch (e) {
+      const code = (e as { code?: string } | undefined)?.code;
       const needsRedirect =
-        e?.code === 'auth/popup-blocked' ||
-        e?.code === 'auth/operation-not-supported-in-this-environment' ||
-        e?.code === 'auth/cancelled-popup-request';
+        code === 'auth/popup-blocked' ||
+        code === 'auth/operation-not-supported-in-this-environment' ||
+        code === 'auth/cancelled-popup-request';
       if (needsRedirect) {
         try {
           await signInWithRedirect(auth, googleProvider);
@@ -73,7 +74,7 @@ export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Prop
           setError(true);
           setLoading(false);
         }
-      } else if (e?.code === 'auth/popup-closed-by-user') {
+      } else if (code === 'auth/popup-closed-by-user') {
         setLoading(false);
       } else {
         setError(true);
@@ -186,7 +187,7 @@ export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Prop
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
                 boxShadow: '0 2px 16px rgba(58,50,69,0.08)',
                 fontFamily: T.fontSans, fontSize: 15, fontWeight: 500, color: T.ink,
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               {loading ? (
@@ -231,7 +232,7 @@ export default function SplashScreen({ isAuthed, onContinue, onGuestMode }: Prop
                 background: 'none', border: 'none', cursor: 'pointer',
                 fontSize: 14, color: T.inkSoft, letterSpacing: '0.01em',
                 padding: '4px 16px',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               Continue without account

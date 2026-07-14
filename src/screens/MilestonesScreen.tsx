@@ -17,7 +17,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 const DONE_GRADIENTS: Record<string, string> = {
@@ -111,7 +111,7 @@ function MilestoneTile({ milestone, onOpen, onCapture, sparkle }: {
           borderRadius: 20, border: 'none', padding: '16px 14px 18px',
           cursor: 'pointer', textAlign: 'left', position: 'relative',
           boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-          WebkitTapHighlightColor: 'transparent' as any,
+          WebkitTapHighlightColor: 'transparent',
           display: 'flex', flexDirection: 'column', gap: 12,
           overflow: 'visible',
         }}
@@ -156,7 +156,7 @@ function MilestoneTile({ milestone, onOpen, onCapture, sparkle }: {
         border: `1.5px dashed ${T.line}`,
         borderRadius: 20, padding: '16px 14px 18px',
         cursor: 'pointer', textAlign: 'left',
-        WebkitTapHighlightColor: 'transparent' as any,
+        WebkitTapHighlightColor: 'transparent',
         display: 'flex', flexDirection: 'column', gap: 12,
       }}
     >
@@ -196,7 +196,7 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
       sparkleTimerRef.current = setTimeout(() => setSparkleId(null), 1800);
     }
     prevDoneRef.current = new Set(milestones.filter((m) => m.done).map((m) => m.id));
-  }, [milestones]);
+  }, [milestones, success]);
 
   useEffect(() => () => { if (sparkleTimerRef.current) clearTimeout(sparkleTimerRef.current); }, []);
 
@@ -254,7 +254,7 @@ export default function MilestonesScreen({ onBack, onOpenMilestone, onAddMemoryF
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
-      } as any}>
+      }}>
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
           {milestones.map((m) => (
             <MilestoneTile

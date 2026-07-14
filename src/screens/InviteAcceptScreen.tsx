@@ -14,6 +14,7 @@ interface InviteData {
   roleName: string;
   permissions: { canView: boolean; canReact: boolean; canAdd: boolean; notifyNew: boolean };
   createdAt: number;
+  expiresAt?: number;
 }
 
 interface Props {
@@ -35,8 +36,10 @@ export default function InviteAcceptScreen({ token, isAuthed, onAccepted, onDecl
   useEffect(() => {
     getDoc(doc(db, 'invites', token))
       .then((snap) => {
-        if (snap.exists()) setInvite(snap.data() as InviteData);
-        else setNotFound(true);
+        if (!snap.exists()) { setNotFound(true); return; }
+        const data = snap.data() as InviteData;
+        if (data.expiresAt && Date.now() > data.expiresAt) { setNotFound(true); return; }
+        setInvite(data);
       })
       .catch(() => setNotFound(true))
       .finally(() => setLoading(false));
@@ -72,19 +75,54 @@ export default function InviteAcceptScreen({ token, isAuthed, onAccepted, onDecl
     if (!invite || !auth.currentUser) return;
     medium();
     setAccepting(true);
+    const uid = auth.currentUser.uid;
+    const displayName = auth.currentUser.displayName ?? '';
     try {
       await setDoc(
-        doc(db, 'invites', token, 'acceptances', auth.currentUser.uid),
+        doc(db, 'invites', token, 'acceptances', uid),
         {
-          userId: auth.currentUser.uid,
-          displayName: auth.currentUser.displayName ?? '',
+          userId: uid,
+          displayName,
           email: auth.currentUser.email ?? '',
           acceptedAt: Date.now(),
         },
       );
+
+      // Grant real access: add a membership record under the owner's data
+      // (security rules key off this to allow shared reads/writes), then
+      // point this account's own sync at the owner's family data.
+      const initial = (displayName || invite.roleName || '?')[0].toUpperCase();
+      const gradients = [
+        'linear-gradient(135deg, #b8d5f0, #7aa8d8)',
+        'linear-gradient(135deg, #f5b8b8, #e07878)',
+        'linear-gradient(135deg, #c0e8d4, #88d0a8)',
+        'linear-gradient(135deg, #e0d090, #c0a850)',
+        'linear-gradient(135deg, #d8cef0, #b8a0e0)',
+      ];
+      await setDoc(doc(db, 'users', invite.ownerId, 'members', uid), {
+        id: uid,
+        name: displayName || invite.roleName,
+        relation: invite.roleName,
+        initial,
+        color: '#93b8e0',
+        gradient: gradients[Math.floor(Math.random() * gradients.length)],
+        joined: `Joined ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
+        notifyNew: invite.permissions.notifyNew,
+        canAdd: invite.permissions.canAdd,
+        // Lets the security rule verify this membership was created via a
+        // real, unexpired invite for this owner rather than trusting the client.
+        viaToken: token,
+      });
+      await setDoc(doc(db, 'users', uid), { dataOwnerId: invite.ownerId }, { merge: true });
+
       success();
       setAccepted(true);
-      setTimeout(onAccepted, 1500);
+      setTimeout(() => {
+        onAccepted();
+        // Reload so useFirestoreSync re-resolves against the new dataOwnerId
+        // and loads the shared family data instead of this account's own.
+        window.location.href = window.location.origin;
+      }, 1500);
     } catch {
       setAccepting(false);
     }
@@ -135,7 +173,7 @@ export default function InviteAcceptScreen({ token, isAuthed, onAccepted, onDecl
             height: 50, padding: '0 32px', borderRadius: 16,
             background: T.ink, border: 'none', cursor: 'pointer',
             color: '#fff', fontSize: 14.5, fontWeight: 500, fontFamily: T.fontSans,
-            WebkitTapHighlightColor: 'transparent' as any,
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           Back to app
@@ -266,7 +304,7 @@ export default function InviteAcceptScreen({ token, isAuthed, onAccepted, onDecl
                 display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 12,
                 boxShadow: '0 2px 16px rgba(58,50,69,0.08)',
                 fontFamily: T.fontSans, fontSize: 15, fontWeight: 500, color: T.ink,
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
                 marginBottom: 12,
               }}
             >
@@ -306,7 +344,7 @@ export default function InviteAcceptScreen({ token, isAuthed, onAccepted, onDecl
               fontSize: 15, fontWeight: 600, fontFamily: T.fontSans,
               boxShadow: accepting ? 'none' : '0 6px 20px rgba(139,111,199,0.35)',
               display: 'flex', alignItems: 'center', justifyContent: 'center',
-              WebkitTapHighlightColor: 'transparent' as any,
+              WebkitTapHighlightColor: 'transparent',
               marginBottom: 12,
             }}
           >
@@ -321,7 +359,7 @@ export default function InviteAcceptScreen({ token, isAuthed, onAccepted, onDecl
             width: '100%', height: 44, borderRadius: 14,
             background: 'none', border: 'none', cursor: 'pointer',
             color: T.inkMuted, fontSize: 14, fontFamily: T.fontSans,
-            WebkitTapHighlightColor: 'transparent' as any,
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           No thanks

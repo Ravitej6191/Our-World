@@ -19,7 +19,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 export default function MilestoneDetailScreen({ milestone, memories, onBack, onAddMemory, onOpenMemory }: Props) {
@@ -52,7 +52,7 @@ export default function MilestoneDetailScreen({ milestone, memories, onBack, onA
         position: 'absolute', inset: 0, background: T.bg,
         fontFamily: T.fontSans, overflowY: 'auto',
         scrollbarWidth: 'none',
-      } as any}
+      }}
     >
       {/* Top chrome */}
       <div style={{
@@ -195,7 +195,7 @@ export default function MilestoneDetailScreen({ milestone, memories, onBack, onA
                   background: 'none', border: 'none', cursor: 'pointer',
                   borderTop: i > 0 ? `1px solid ${T.lineSoft}` : 'none',
                   textAlign: 'left',
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <div style={{
@@ -229,7 +229,7 @@ export default function MilestoneDetailScreen({ milestone, memories, onBack, onA
             fontSize: 15, fontWeight: 600, letterSpacing: '-0.01em',
             fontFamily: T.fontSans,
             boxShadow: milestone.done ? 'none' : '0 6px 20px rgba(139,111,199,0.35)',
-            WebkitTapHighlightColor: 'transparent' as any,
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           {milestone.done ? 'Add another memory' : 'Capture this moment'}

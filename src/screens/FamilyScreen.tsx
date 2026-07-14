@@ -17,7 +17,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 function MemberRow({ member, onOpen }: { member: FamilyMember; onOpen: () => void }) {
@@ -33,7 +33,7 @@ function MemberRow({ member, onOpen }: { member: FamilyMember; onOpen: () => voi
         display: 'flex', alignItems: 'center', gap: 16,
         cursor: 'pointer', width: '100%',
         boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-        WebkitTapHighlightColor: 'transparent' as any,
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       <div style={{
@@ -111,7 +111,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
-      } as any}>
+      }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {members.map((member) => (
             <MemberRow
@@ -131,7 +131,7 @@ export default function FamilyScreen({ onBack, onOpenMember, onInvite }: Props) 
               borderRadius: 20, padding: '16px 18px',
               display: 'flex', alignItems: 'center', gap: 16,
               cursor: 'pointer', width: '100%',
-              WebkitTapHighlightColor: 'transparent' as any,
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             <div style={{

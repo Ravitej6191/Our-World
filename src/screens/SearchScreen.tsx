@@ -18,7 +18,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 type FilterId = 'all' | 'milestones' | EmotionKind;
@@ -109,7 +109,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
             style={{
               flex: 1, border: 'none', outline: 'none', background: 'transparent',
               fontSize: 15, color: T.ink, fontFamily: T.fontSans,
-            } as any}
+            }}
           />
           {query.length > 0 && (
             <motion.button
@@ -119,7 +119,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                 background: T.lineSoft, border: 'none', borderRadius: 10,
                 width: 22, height: 22, display: 'flex', alignItems: 'center',
                 justifyContent: 'center', cursor: 'pointer',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
                 padding: 0, flexShrink: 0,
               }}
             >
@@ -133,7 +133,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
           display: 'flex', gap: 8, marginTop: 12,
           overflowX: 'auto', paddingBottom: 2,
           scrollbarWidth: 'none',
-        } as any}>
+        }}>
           {FILTERS.map((f) => (
             <motion.button
               key={f.id}
@@ -147,7 +147,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                 border: activeFilter === f.id ? 'none' : `1px solid ${T.line}`,
                 fontSize: 13, fontWeight: 500, cursor: 'pointer',
                 fontFamily: T.fontSans, whiteSpace: 'nowrap',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               {f.label}
@@ -160,7 +160,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
       <div style={{
         flex: 1, overflowY: 'auto', padding: '20px 20px 110px',
         scrollbarWidth: 'none',
-      } as any}>
+      }}>
         {isEmpty ? (
           <div>
             {searchHistory.length > 0 && (
@@ -176,7 +176,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                     style={{
                       background: 'none', border: 'none', cursor: 'pointer',
                       fontSize: 12, color: T.inkMuted, padding: '4px 8px',
-                      WebkitTapHighlightColor: 'transparent' as any,
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                   >
                     Clear
@@ -193,7 +193,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                         borderRadius: 999, padding: '8px 16px',
                         fontSize: 14, color: T.inkSoft, cursor: 'pointer',
                         fontFamily: T.fontSans,
-                        WebkitTapHighlightColor: 'transparent' as any,
+                        WebkitTapHighlightColor: 'transparent',
                         boxShadow: '0 1px 3px rgba(58,50,69,0.04)',
                         display: 'flex', alignItems: 'center', gap: 8,
                       }}
@@ -284,7 +284,7 @@ export default function SearchScreen({ memories, onBack, onOpenMemory }: Props) 
                   cursor: 'pointer',
                   boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
                   display: 'flex', alignItems: 'center', gap: 14,
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <div style={{ width: 56, height: 56, borderRadius: 14, overflow: 'hidden', flexShrink: 0 }}>

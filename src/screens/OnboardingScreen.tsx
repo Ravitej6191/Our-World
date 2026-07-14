@@ -102,7 +102,11 @@ export default function OnboardingScreen({ onDone }: Props) {
   const [step, setStep] = useState(0);
   const { medium } = useHaptics();
   const p = pages[step];
-  const next = () => { medium(); step < pages.length - 1 ? setStep(step + 1) : onDone(); };
+  const next = () => {
+    medium();
+    if (step < pages.length - 1) setStep(step + 1);
+    else onDone();
+  };
 
   return (
     <div style={{

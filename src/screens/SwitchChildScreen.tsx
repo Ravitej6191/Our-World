@@ -20,7 +20,7 @@ export default function SwitchChildScreen({ onBack, onSwitch, onAddChild }: Prop
     width: 40, height: 40, borderRadius: 20,
     background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
     display: 'flex', alignItems: 'center', justifyContent: 'center',
-    cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+    cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
   };
 
   return (
@@ -69,7 +69,7 @@ export default function SwitchChildScreen({ onBack, onSwitch, onAddChild }: Prop
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
-      } as any}>
+      }}>
         <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
           {children.map((child, idx) => {
             const grad = CHILD_PALETTES[child.colorIdx % CHILD_PALETTES.length];
@@ -95,7 +95,7 @@ export default function SwitchChildScreen({ onBack, onSwitch, onAddChild }: Prop
                   display: 'flex', alignItems: 'center', gap: 16,
                   cursor: isActive ? 'default' : 'pointer', width: '100%',
                   boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <div style={{
@@ -142,7 +142,7 @@ export default function SwitchChildScreen({ onBack, onSwitch, onAddChild }: Prop
               borderRadius: 20, padding: '16px 18px',
               display: 'flex', alignItems: 'center', gap: 16,
               cursor: 'pointer', width: '100%',
-              WebkitTapHighlightColor: 'transparent' as any,
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             <div style={{

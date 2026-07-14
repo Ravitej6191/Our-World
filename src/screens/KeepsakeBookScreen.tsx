@@ -19,7 +19,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 const MONTH_NAMES = [
@@ -139,7 +139,7 @@ export default function KeepsakeBookScreen({ memories, childName, onBack }: Prop
       style={{
         position: 'absolute', inset: 0, background: T.bg,
         fontFamily: T.fontSans, overflowY: 'auto', scrollbarWidth: 'none',
-      } as any}
+      }}
     >
       {/* Decorative orb */}
       <div style={{
@@ -247,7 +247,7 @@ export default function KeepsakeBookScreen({ memories, childName, onBack }: Prop
             display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
             cursor: 'pointer', marginBottom: 24,
             boxShadow: '0 1px 3px rgba(58,50,69,0.04)',
-            WebkitTapHighlightColor: 'transparent' as any,
+            WebkitTapHighlightColor: 'transparent',
           }}
         >
           <Icon name="download" size={18} color={T.lavenderDeep} strokeWidth={2} />

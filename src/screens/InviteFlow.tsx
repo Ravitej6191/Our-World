@@ -36,7 +36,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 function Divider() {
@@ -78,13 +78,14 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
 
   const handleSend = async () => {
     success();
-    const token = Math.random().toString(36).slice(2, 10);
+    const token = crypto.randomUUID();
     const inviteUrl = `${window.location.origin}/?invite=${token}`;
     setGeneratedUrl(inviteUrl);
     setStep('sent');
 
     // Persist invite token to Firestore so the link works when opened
     if (auth.currentUser) {
+      const createdAt = Date.now();
       setDoc(doc(db, 'invites', token), {
         token,
         ownerId: auth.currentUser.uid,
@@ -92,7 +93,8 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
         role: role?.id ?? '',
         roleName: role?.label ?? '',
         permissions: { canView: true, canReact, canAdd, notifyNew },
-        createdAt: Date.now(),
+        createdAt,
+        expiresAt: createdAt + 30 * 24 * 60 * 60 * 1000, // 30 days
       }).catch(() => {}); // silent fail — invite URL still shareable
     }
 
@@ -160,7 +162,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                 <Icon name="close" size={18} color={T.inkSoft} />
               </motion.button>
             </div>
-            <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', display: 'flex', flexDirection: 'column', gap: 10 } as any}>
+            <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none', display: 'flex', flexDirection: 'column', gap: 10 }}>
               {ROLES.map((r) => (
                 <motion.button
                   key={r.id}
@@ -171,7 +173,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                     padding: '14px 16px', display: 'flex', alignItems: 'center', gap: 14,
                     cursor: 'pointer', width: '100%',
                     boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-                    WebkitTapHighlightColor: 'transparent' as any,
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   <div style={{
@@ -198,7 +200,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.22 }}
-            style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' } as any}
+            style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}
           >
             <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 40px` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
@@ -226,7 +228,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                       color: contactMode === mode ? T.ink : T.inkMuted,
                       boxShadow: contactMode === mode ? '0 1px 3px rgba(58,50,69,0.08)' : 'none',
                       transition: 'all 0.15s ease',
-                      WebkitTapHighlightColor: 'transparent' as any,
+                      WebkitTapHighlightColor: 'transparent',
                       whiteSpace: 'nowrap',
                     }}
                   >
@@ -242,7 +244,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                     style={{
                       width: '100%', border: 'none', outline: 'none', background: 'transparent',
                       fontFamily: T.fontSerif, fontStyle: 'italic', fontSize: 22, color: T.ink, lineHeight: 1.3,
-                    } as any}
+                    }}
                   />
                 </div>
                 <div>
@@ -264,7 +266,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                       style={{
                         width: '100%', border: 'none', outline: 'none', background: 'transparent',
                         fontSize: 16, color: T.ink, fontFamily: T.fontSans,
-                      } as any}
+                      }}
                     />
                   </div>
                   <AnimatePresence>
@@ -300,7 +302,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                     color: canSendNext ? '#fff' : T.inkFaint,
                     fontSize: 15, fontWeight: 600, fontFamily: T.fontSans,
                     boxShadow: canSendNext ? '0 6px 20px rgba(139,111,199,0.35)' : 'none',
-                    WebkitTapHighlightColor: 'transparent' as any,
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   Next: Set permissions
@@ -317,7 +319,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -20 }}
             transition={{ duration: 0.22 }}
-            style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' } as any}
+            style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}
           >
             <div style={{ padding: `calc(${T.safeTop} + 12px) 24px 40px` }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28 }}>
@@ -366,7 +368,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                   border: 'none', cursor: 'pointer', color: '#fff',
                   fontSize: 15, fontWeight: 600, fontFamily: T.fontSans,
                   boxShadow: '0 6px 20px rgba(139,111,199,0.35)',
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 Send invitation
@@ -425,7 +427,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                 boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
                 display: 'flex', alignItems: 'center', gap: 12, marginBottom: 28,
                 border: `1px solid ${T.lineSoft}`, cursor: 'pointer', textAlign: 'left',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               <div style={{
@@ -450,7 +452,7 @@ export default function InviteFlow({ onClose, onInvited }: Props) {
                 width: '100%', height: 54, borderRadius: 18,
                 background: T.ink, border: 'none', cursor: 'pointer',
                 color: '#fff', fontSize: 15, fontWeight: 600, fontFamily: T.fontSans,
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               Back to family

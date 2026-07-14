@@ -6,8 +6,13 @@ import { onAuthStateChanged } from 'firebase/auth';
 import { auth } from './firebase';
 import { useStore } from './store';
 import type { TabId } from './types';
+import type { EmotionKind } from './tokens';
 import { useFirestoreSync } from './hooks/useFirestore';
+import { useMediaBackupRetry } from './hooks/useMediaBackupRetry';
+import { useBiometricLock } from './hooks/useBiometricLock';
 import { EMOTION_TONE } from './shared/constants';
+import { T } from './tokens';
+import Icon from './components/Icon';
 
 import SplashScreen from './screens/SplashScreen';
 import InviteAcceptScreen from './screens/InviteAcceptScreen';
@@ -98,13 +103,18 @@ export default function App() {
     child, children, memories, milestones, toast, onboardingDone, settings, isLoading,
     isGuest, setGuestMode,
     setChild, addMemory, updateMemory, deleteMemory, markMilestoneDone,
-    addMember, removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
+    removeMember, showToast, clearToast, completeOnboarding, addChildProfile,
   } = useStore();
 
   const [authReady, setAuthReady] = useState(false);
   const [isAuthed, setIsAuthed] = useState(false);
   const [appHidden, setAppHidden] = useState(false);
-  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(null);
+  const [pendingInviteToken, setPendingInviteToken] = useState<string | null>(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('invite');
+  });
+
+  const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
 
   // Firebase auth state listener
   useEffect(() => {
@@ -120,11 +130,7 @@ export default function App() {
     if (!authReady) return;
     CapSplash.hide({ fadeOutDuration: 300 }).catch(() => {});
 
-    // Check for invite link in URL
-    const params = new URLSearchParams(window.location.search);
-    const inviteToken = params.get('invite');
-    if (inviteToken) {
-      setPendingInviteToken(inviteToken);
+    if (pendingInviteToken) {
       // Clear the token from URL so refresh/share doesn't re-trigger
       window.history.replaceState({}, '', window.location.pathname);
       replace('inviteAccept');
@@ -143,10 +149,11 @@ export default function App() {
     if (isAuthed && isGuest) setGuestMode(false);
   }, [isAuthed, isGuest, setGuestMode]);
 
-  // Private mode: blur when app is hidden/backgrounded
+  // Tracks whether the app is backgrounded — used for both the private-mode
+  // blur overlay and the biometric lock's "re-lock on resume" behavior.
   // Uses both visibilitychange (web) and Capacitor appStateChange (native/PWA)
   useEffect(() => {
-    if (!settings.privateMode) { setAppHidden(false); return; }
+    if (!settings.privateMode && !settings.faceId) return;
     const handleVisibility = () => setAppHidden(document.hidden);
     document.addEventListener('visibilitychange', handleVisibility);
     let capHandle: { remove: () => void } | undefined;
@@ -156,10 +163,9 @@ export default function App() {
     return () => {
       document.removeEventListener('visibilitychange', handleVisibility);
       capHandle?.remove();
+      setAppHidden(false);
     };
-  }, [settings.privateMode]);
-
-  const { screen, stack, dir, push, pop, replace, jumpTab } = useNav('splash');
+  }, [settings.privateMode, settings.faceId]);
 
   // Navigate to splash whenever the user signs out (and isn't a guest)
   useEffect(() => {
@@ -177,6 +183,14 @@ export default function App() {
   const [childFlowMode, setChildFlowMode] = useState<ChildFlowMode>('setup');
 
   useFirestoreSync();
+  useMediaBackupRetry();
+  const { locked, unlock } = useBiometricLock(settings.faceId, appHidden);
+
+  // Prompt automatically as soon as the lock screen appears; the on-screen
+  // "Unlock" button remains as a manual retry if the prompt is dismissed.
+  useEffect(() => {
+    if (locked) unlock();
+  }, [locked, unlock]);
 
   useEffect(() => {
     let handle: { remove: () => void } | undefined;
@@ -186,7 +200,7 @@ export default function App() {
     return () => { handle?.remove(); };
   }, [stack, pop]);
 
-  const showMain = MAIN_TABS.includes(screen as any);
+  const showMain = MAIN_TABS.includes(screen);
 
   const handleTab = (tab: TabId) => {
     if (tab === 'add') { push('addMemory'); return; }
@@ -215,8 +229,8 @@ export default function App() {
   };
 
   const handleSaveMemory = (m: {
-    media: string; title: string; note: string;
-    emotion: any; isMilestone: boolean; milestoneId?: string;
+    media: 'photo' | 'video' | 'voice' | 'text'; title: string; note: string;
+    emotion: EmotionKind; isMilestone: boolean; milestoneId?: string;
     mediaUri?: string; posterUri?: string; duration?: string;
   }) => {
     const id = `m${Date.now()}`;
@@ -230,7 +244,7 @@ export default function App() {
       group: nowGroup(),
       title: m.title || 'A memory',
       note: m.note,
-      media: m.media as any,
+      media: m.media,
       tone,
       label: m.title,
       emotion: m.emotion,
@@ -249,7 +263,11 @@ export default function App() {
 
     setPendingMilestoneId(null);
     pop();
-    showToast({ text: 'Memory saved', variant: 'success' });
+    const backupPending = m.mediaUri?.startsWith('data:');
+    showToast({
+      text: backupPending ? 'Memory saved — will back up when online' : 'Memory saved',
+      variant: 'success',
+    });
   };
 
   const handleDeleteMemory = (id: string) => {
@@ -294,7 +312,7 @@ export default function App() {
   const selectedMember = members.find(m => m.id === openMemberId);
 
   const isModal = screen === 'addMemory' || screen === 'invite';
-  const isMainTab = MAIN_TABS.includes(screen as any);
+  const isMainTab = MAIN_TABS.includes(screen);
   const usesFade = screen === 'splash' || screen === 'onboarding' || screen === 'addChild' || screen === 'switchChild' || screen === 'inviteAccept' || isModal || isMainTab;
   const transition = { type: 'tween', ease: [0.25, 0.1, 0.25, 1], duration: 0.26 } as const;
 
@@ -442,26 +460,10 @@ export default function App() {
           {screen === 'invite' && (
             <InviteFlow
               onClose={pop}
-              onInvited={({ name, role, inviteUrl, inviteContact }) => {
-                const initial = (name || role || '?')[0].toUpperCase();
-                const gradients = [
-                  'linear-gradient(135deg, #b8d5f0, #7aa8d8)',
-                  'linear-gradient(135deg, #f5b8b8, #e07878)',
-                  'linear-gradient(135deg, #c0e8d4, #88d0a8)',
-                  'linear-gradient(135deg, #e0d090, #c0a850)',
-                  'linear-gradient(135deg, #d8cef0, #b8a0e0)',
-                ];
-                addMember({
-                  id: `member-${Date.now()}`,
-                  name: name || role,
-                  relation: role,
-                  initial,
-                  color: '#93b8e0',
-                  gradient: gradients[Math.floor(Math.random() * gradients.length)],
-                  joined: `Joined ${new Date().toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}`,
-                  inviteUrl,
-                  inviteContact,
-                });
+              onInvited={({ name }) => {
+                // No optimistic local member here — they only appear in the
+                // Family list once they actually accept (see InviteAcceptScreen),
+                // at which point the real membership syncs down from Firestore.
                 pop();
                 showToast({ text: `${name || 'Invite'} sent!`, variant: 'success' });
               }}
@@ -515,6 +517,44 @@ export default function App() {
               background: 'rgba(250,248,247,0.85)',
             }}
           />
+        )}
+      </AnimatePresence>
+
+      {/* Biometric lock screen */}
+      <AnimatePresence>
+        {locked && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            style={{
+              position: 'absolute', inset: 0, zIndex: 1000,
+              background: T.bg, fontFamily: T.fontSans,
+              display: 'flex', flexDirection: 'column',
+              alignItems: 'center', justifyContent: 'center', gap: 20, padding: 24,
+            }}
+          >
+            <div style={{
+              width: 64, height: 64, borderRadius: 32, background: T.bgCool,
+              display: 'flex', alignItems: 'center', justifyContent: 'center',
+            }}>
+              <Icon name="lock" size={26} color={T.lavenderDeep} />
+            </div>
+            <div style={{ fontSize: 15, color: T.inkMuted, textAlign: 'center' }}>
+              Unlock to open Our World
+            </div>
+            <motion.button
+              whileTap={{ scale: 0.96 }}
+              onClick={unlock}
+              style={{
+                height: 50, padding: '0 28px', borderRadius: 16,
+                background: T.ink, border: 'none', cursor: 'pointer',
+                color: '#fff', fontSize: 14.5, fontWeight: 500, fontFamily: T.fontSans,
+              }}
+            >
+              Unlock
+            </motion.button>
+          </motion.div>
         )}
       </AnimatePresence>
     </div>

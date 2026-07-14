@@ -16,7 +16,7 @@ interface Props {
   defaultMilestoneId?: string | null;
   onClose: () => void;
   onSave: (m: {
-    media: string;
+    media: MediaType;
     title: string;
     note: string;
     emotion: EmotionKind;
@@ -31,11 +31,23 @@ interface Props {
 type MediaType = 'photo' | 'video' | 'voice' | 'text';
 type Step = 'pick' | 'compose' | 'saving';
 
+interface SpeechRecognitionLike {
+  continuous: boolean;
+  interimResults: boolean;
+  onresult: ((e: { results: ArrayLike<{ 0: { transcript: string } }> }) => void) | null;
+  start: () => void;
+  stop: () => void;
+}
+interface SpeechRecognitionWindow {
+  SpeechRecognition?: new () => SpeechRecognitionLike;
+  webkitSpeechRecognition?: new () => SpeechRecognitionLike;
+}
+
 const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 const MEDIA_OPTIONS: { type: MediaType; icon: string; label: string; sub: string; color: string; bg: string }[] = [
@@ -87,7 +99,7 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
   const mediaRef = useRef<MediaRecorder | null>(null);
   const chunksRef = useRef<Blob[]>([]);
   const audioRef = useRef<HTMLAudioElement | null>(null);
-  const recognitionRef = useRef<any>(null);
+  const recognitionRef = useRef<SpeechRecognitionLike | null>(null);
   const transcriptRef = useRef('');
   const { light } = useHaptics();
 
@@ -133,13 +145,14 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
 
       // Live transcription via Web Speech API (best-effort)
       try {
-        const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const speechWindow = window as unknown as SpeechRecognitionWindow;
+        const SR = speechWindow.SpeechRecognition || speechWindow.webkitSpeechRecognition;
         if (SR) {
           const rec = new SR();
           rec.continuous = true;
           rec.interimResults = false;
-          rec.onresult = (e: any) => {
-            transcriptRef.current = Array.from(e.results as any[]).map((r: any) => r[0].transcript).join(' ');
+          rec.onresult = (e) => {
+            transcriptRef.current = Array.from(e.results).map((r) => r[0].transcript).join(' ');
           };
           rec.start();
           recognitionRef.current = rec;
@@ -219,7 +232,7 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
                 width: 44, height: 44, borderRadius: 22,
                 background: T.card, border: `1px solid ${T.line}`,
                 cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               <Icon name="close" size={16} color={T.inkSoft} />
@@ -233,7 +246,7 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
                 border: 'none', cursor: 'pointer',
                 display: 'flex', alignItems: 'center', justifyContent: 'center',
                 boxShadow: '0 6px 20px rgba(139,111,199,0.4)',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               <Icon name={playing ? 'pause' : 'play'} size={26} color="#fff" strokeWidth={2} />
@@ -253,7 +266,7 @@ function VoiceRecorder({ onRecorded }: VoiceRecorderProps) {
               boxShadow: recording
                 ? '0 6px 20px rgba(212,115,106,0.4)'
                 : '0 6px 20px rgba(139,111,199,0.4)',
-              WebkitTapHighlightColor: 'transparent' as any,
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             <Icon name={recording ? 'stop' : 'mic'} size={26} color="#fff" strokeWidth={2} />
@@ -376,22 +389,34 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
     }
   };
 
+  // Latest field/callback values for the save timer below, so the effect only
+  // needs to react to `step` while still saving whatever is current when it fires.
+  const latestRef = useRef({
+    media, title, note, emotion, isMilestone, milestoneId, mediaUri, posterUri, voiceDuration, onSave, success,
+  });
   useEffect(() => {
-    if (step === 'saving') {
-      success();
-      const t = setTimeout(() => {
-        onSave({
-          media, title, note,
-          emotion: emotion ?? 'joy',
-          isMilestone,
-          milestoneId: isMilestone && milestoneId ? milestoneId : undefined,
-          mediaUri,
-          posterUri,
-          duration: voiceDuration,
-        });
-      }, 900);
-      return () => clearTimeout(t);
-    }
+    latestRef.current = {
+      media, title, note, emotion, isMilestone, milestoneId, mediaUri, posterUri, voiceDuration, onSave, success,
+    };
+  });
+
+  useEffect(() => {
+    if (step !== 'saving') return;
+    const l = latestRef.current;
+    l.success();
+    const t = setTimeout(() => {
+      const d = latestRef.current;
+      d.onSave({
+        media: d.media, title: d.title, note: d.note,
+        emotion: d.emotion ?? 'joy',
+        isMilestone: d.isMilestone,
+        milestoneId: d.isMilestone && d.milestoneId ? d.milestoneId : undefined,
+        mediaUri: d.mediaUri,
+        posterUri: d.posterUri,
+        duration: d.voiceDuration,
+      });
+    }, 900);
+    return () => clearTimeout(t);
   }, [step]);
 
   return (
@@ -439,7 +464,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                     display: 'flex', flexDirection: 'column', gap: 14,
                     cursor: 'pointer', textAlign: 'left',
                     boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 8px rgba(58,50,69,0.06)',
-                    WebkitTapHighlightColor: 'transparent' as any,
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   <div style={{
@@ -470,7 +495,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
             style={{
               flex: 1, overflowY: 'auto', scrollbarWidth: 'none',
               display: 'flex', flexDirection: 'column',
-            } as any}
+            }}
           >
             {/* Chrome */}
             <div style={{
@@ -527,7 +552,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                                 display: 'flex', alignItems: 'center', gap: 6,
                                 background: 'rgba(0,0,0,0.55)', borderRadius: 20,
                                 padding: '7px 14px', border: 'none', cursor: 'pointer',
-                                WebkitTapHighlightColor: 'transparent' as any,
+                                WebkitTapHighlightColor: 'transparent',
                               }}
                             >
                               <Icon name="camera" size={14} color="#fff" />
@@ -540,7 +565,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                                 display: 'flex', alignItems: 'center', gap: 6,
                                 background: 'rgba(0,0,0,0.55)', borderRadius: 20,
                                 padding: '7px 14px', border: 'none', cursor: 'pointer',
-                                WebkitTapHighlightColor: 'transparent' as any,
+                                WebkitTapHighlightColor: 'transparent',
                               }}
                             >
                               <Icon name="image" size={14} color="#fff" />
@@ -564,7 +589,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                                 background: 'rgba(255,255,255,0.88)', borderRadius: 20,
                                 padding: '10px 18px', border: 'none', cursor: 'pointer',
                                 boxShadow: '0 2px 8px rgba(58,50,69,0.12)',
-                                WebkitTapHighlightColor: 'transparent' as any,
+                                WebkitTapHighlightColor: 'transparent',
                               }}
                             >
                               <Icon name="camera" size={18} color={T.ink} />
@@ -578,7 +603,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                                 background: 'rgba(255,255,255,0.88)', borderRadius: 20,
                                 padding: '10px 18px', border: 'none', cursor: 'pointer',
                                 boxShadow: '0 2px 8px rgba(58,50,69,0.12)',
-                                WebkitTapHighlightColor: 'transparent' as any,
+                                WebkitTapHighlightColor: 'transparent',
                               }}
                             >
                               <Icon name="image" size={18} color={T.ink} />
@@ -666,7 +691,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                     fontFamily: T.fontSerif, fontStyle: 'italic',
                     fontSize: 22, color: T.ink, lineHeight: 1.3,
                     letterSpacing: '-0.01em',
-                  } as any}
+                  }}
                 />
                 {title.length >= 60 && (
                   <div style={{ fontSize: 11, color: title.length >= 80 ? T.blushDeep : T.inkFaint, textAlign: 'right', marginTop: 4 }}>
@@ -687,7 +712,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                   background: T.card, borderRadius: 14, padding: '14px 16px',
                   fontFamily: T.fontSans, fontSize: 15, color: T.ink,
                   lineHeight: 1.55, resize: 'none', boxSizing: 'border-box',
-                } as any}
+                }}
               />
 
               {/* Feeling picker */}
@@ -699,7 +724,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                 <div style={{
                   display: 'flex', gap: 8, overflowX: 'auto', paddingBottom: 4,
                   scrollbarWidth: 'none',
-                } as any}>
+                }}>
                   {EMOTIONS_LIST.map(([kind, e]) => {
                     const active = emotion === kind;
                     return (
@@ -714,7 +739,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                           border: active ? `1.5px solid ${e.color}` : `1px solid ${T.line}`,
                           cursor: 'pointer', transition: 'all 0.15s',
                           boxShadow: active ? `0 2px 10px ${e.color}50` : 'none',
-                          WebkitTapHighlightColor: 'transparent' as any,
+                          WebkitTapHighlightColor: 'transparent',
                         }}
                       >
                         <EmotionGlyph kind={kind} size={18} />
@@ -783,7 +808,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                                   border: `1px solid ${active ? T.lavenderDeep : T.line}`,
                                   fontSize: 13, fontWeight: active ? 600 : 400, cursor: 'pointer',
                                   display: 'flex', alignItems: 'center', gap: 5,
-                                  WebkitTapHighlightColor: 'transparent' as any,
+                                  WebkitTapHighlightColor: 'transparent',
                                 }}
                               >
                                 {m.done && <Icon name="check" size={11} color={active ? '#fff' : T.gold} strokeWidth={2.4} />}
@@ -834,7 +859,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                   fontFamily: T.fontSans,
                   boxShadow: canSave ? '0 6px 20px rgba(139,111,199,0.35)' : 'none',
                   transition: 'all 0.2s ease',
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 {uploading
@@ -942,7 +967,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                   background: '#d4736a', border: 'none', cursor: 'pointer',
                   color: '#fff', fontSize: 15, fontWeight: 600,
                   fontFamily: T.fontSans, marginBottom: 12,
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 Discard
@@ -955,7 +980,7 @@ export default function AddMemoryFlow({ defaultMilestoneId, onClose, onSave }: P
                   background: 'transparent', border: `1.5px solid ${T.line}`,
                   cursor: 'pointer', color: T.ink, fontSize: 15,
                   fontWeight: 500, fontFamily: T.fontSans,
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 Keep editing

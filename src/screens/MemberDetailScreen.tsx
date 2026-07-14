@@ -17,7 +17,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 function Divider() {
@@ -120,10 +120,10 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
         </motion.button>
       </div>
 
-      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' } as any}>
+      <div style={{ flex: 1, overflowY: 'auto', scrollbarWidth: 'none' }}>
         {/* Hero section */}
         <div style={{
-          paddingTop: `calc(${T.safeTop} + 56px)` as any, paddingBottom: 28,
+          paddingTop: `calc(${T.safeTop} + 56px)`, paddingBottom: 28,
           display: 'flex', flexDirection: 'column', alignItems: 'center',
           background: `linear-gradient(180deg, ${T.bgCool} 0%, ${T.bg} 100%)`,
         }}>
@@ -159,7 +159,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                     fontFamily: T.fontSerif, fontStyle: 'italic',
                     fontSize: 26, color: T.ink, paddingBottom: 6,
                     width: '100%',
-                  } as any}
+                  }}
                 />
                 <input
                   value={editRelation}
@@ -170,7 +170,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                     background: 'transparent', outline: 'none', textAlign: 'center',
                     fontSize: 14, color: T.inkSoft, paddingBottom: 6, fontFamily: T.fontSans,
                     width: '100%',
-                  } as any}
+                  }}
                 />
                 <motion.button
                   whileTap={{ scale: 0.97 }}
@@ -182,7 +182,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                     border: 'none', cursor: editName.trim() ? 'pointer' : 'default',
                     color: editName.trim() ? '#fff' : T.inkFaint,
                     fontSize: 14, fontWeight: 600, fontFamily: T.fontSans,
-                    WebkitTapHighlightColor: 'transparent' as any,
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   Save changes
@@ -226,7 +226,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', background: 'none', border: 'none',
                 cursor: 'pointer', textAlign: 'left',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               <div style={{
@@ -254,7 +254,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                 width: '100%', display: 'flex', alignItems: 'center', gap: 12,
                 padding: '14px 16px', background: 'none', border: 'none',
                 cursor: 'pointer', textAlign: 'left',
-                WebkitTapHighlightColor: 'transparent' as any,
+                WebkitTapHighlightColor: 'transparent',
               }}
             >
               <div style={{
@@ -349,7 +349,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
               fontSize: 14.5, fontWeight: 600,
               fontFamily: T.fontSans, cursor: 'pointer',
               display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-              WebkitTapHighlightColor: 'transparent' as any,
+              WebkitTapHighlightColor: 'transparent',
             }}
           >
             <Icon name="trash" size={16} color={T.blushDeep} />
@@ -404,7 +404,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                   background: '#d4736a', border: 'none', cursor: 'pointer',
                   color: '#fff', fontSize: 15, fontWeight: 600,
                   fontFamily: T.fontSans, marginBottom: 12,
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 Yes, remove
@@ -417,7 +417,7 @@ export default function MemberDetailScreen({ member, onBack, onRemove }: Props) 
                   background: 'transparent', border: `1.5px solid ${T.line}`,
                   cursor: 'pointer', color: T.ink, fontSize: 15,
                   fontWeight: 500, fontFamily: T.fontSans,
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 Cancel

@@ -22,7 +22,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 const EMOTIONS_LIST = Object.entries(EMOTIONS) as [EmotionKind, (typeof EMOTIONS)[EmotionKind]][];
@@ -88,7 +88,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
         position: 'absolute', inset: 0, background: T.bg,
         fontFamily: T.fontSans, overflowY: 'auto',
         scrollbarWidth: 'none',
-      } as any}
+      }}
     >
       {/* Hero */}
       <div style={{ position: 'relative', paddingTop: `calc(${T.safeTop} + 56px)` }}>
@@ -130,7 +130,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                   background: 'rgba(255,255,255,0.85)',
                   border: 'none', cursor: 'pointer',
                   display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 <Icon name={voicePlaying ? 'pause' : 'play'} size={22} color={T.lavenderDeep} />
@@ -216,6 +216,17 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
           color: T.inkMuted, marginBottom: 12,
         }}>{memory.date}</div>
 
+        {memory.mediaUri?.startsWith('data:') && (
+          <div style={{
+            display: 'inline-flex', alignItems: 'center', gap: 6,
+            background: T.bgCool, color: T.inkMuted, fontSize: 11.5,
+            padding: '5px 10px', borderRadius: 999, marginBottom: 14,
+          }}>
+            <Icon name="cloud" size={12} color={T.inkMuted} />
+            Not backed up yet — will sync when online
+          </div>
+        )}
+
         <div style={{
           fontFamily: T.fontSerif, fontStyle: 'italic',
           fontSize: 30, color: T.ink, lineHeight: 1.15,
@@ -266,7 +277,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
               position: 'absolute', inset: 0, background: T.bg,
               fontFamily: T.fontSans, overflowY: 'auto',
               scrollbarWidth: 'none',
-            } as any}
+            }}
           >
             <div style={{ padding: `calc(${T.safeTop} + 12px) 20px 40px` }}>
               {/* Header */}
@@ -291,7 +302,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                     border: 'none', cursor: editTitle.trim() ? 'pointer' : 'default',
                     color: editTitle.trim() ? '#fff' : T.inkFaint,
                     fontSize: 13, fontWeight: 600, fontFamily: T.fontSans,
-                    WebkitTapHighlightColor: 'transparent' as any,
+                    WebkitTapHighlightColor: 'transparent',
                   }}
                 >
                   Save
@@ -308,7 +319,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                     width: '100%', border: 'none', outline: 'none', background: 'transparent',
                     fontFamily: T.fontSerif, fontStyle: 'italic',
                     fontSize: 22, color: T.ink, lineHeight: 1.3, letterSpacing: '-0.01em',
-                  } as any}
+                  }}
                 />
               </div>
 
@@ -324,7 +335,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                   fontFamily: T.fontSans, fontSize: 15, color: T.ink,
                   lineHeight: 1.55, resize: 'none', boxSizing: 'border-box',
                   marginBottom: 20,
-                } as any}
+                }}
               />
 
               {/* Emotion picker */}
@@ -347,7 +358,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                         border: active ? `1.5px solid ${e.color}` : `1px solid ${T.line}`,
                         cursor: 'pointer',
                         boxShadow: active ? `0 2px 10px ${e.color}50` : 'none',
-                        WebkitTapHighlightColor: 'transparent' as any,
+                        WebkitTapHighlightColor: 'transparent',
                       }}
                     >
                       <EmotionGlyph kind={kind} size={18} />
@@ -410,7 +421,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                   background: '#d4736a', border: 'none', cursor: 'pointer',
                   color: '#fff', fontSize: 15, fontWeight: 600,
                   fontFamily: T.fontSans, marginBottom: 12,
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 Yes, delete
@@ -423,7 +434,7 @@ export default function MemoryDetailScreen({ memory, onBack, onDelete, onSave }:
                   background: 'transparent', border: `1.5px solid ${T.line}`,
                   cursor: 'pointer', color: T.ink, fontSize: 15,
                   fontWeight: 500, fontFamily: T.fontSans,
-                  WebkitTapHighlightColor: 'transparent' as any,
+                  WebkitTapHighlightColor: 'transparent',
                 }}
               >
                 Cancel

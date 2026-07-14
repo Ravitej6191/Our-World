@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { T } from '../tokens';
 import Icon from '../components/Icon';
@@ -22,7 +22,7 @@ const chromeBtn: React.CSSProperties = {
   width: 40, height: 40, borderRadius: 20,
   background: 'rgba(255,255,255,0.85)', border: `1px solid ${T.lineSoft}`,
   display: 'flex', alignItems: 'center', justifyContent: 'center',
-  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent' as any,
+  cursor: 'pointer', padding: 0, WebkitTapHighlightColor: 'transparent',
 };
 
 const MONTH_NAMES = ['January','February','March','April','May','June',
@@ -58,7 +58,7 @@ function MemoryCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) 
         border: 'none', padding: 0, cursor: 'pointer',
         boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 12px rgba(58,50,69,0.07)',
         overflow: 'hidden', display: 'block',
-        WebkitTapHighlightColor: 'transparent' as any,
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       {memory.media === 'voice' ? (
@@ -130,7 +130,7 @@ function MemoryCard({ memory, onOpen }: { memory: Memory; onOpen: () => void }) 
             fontSize: 13, color: T.inkSoft, lineHeight: 1.5,
             display: '-webkit-box', WebkitLineClamp: 2,
             WebkitBoxOrient: 'vertical', overflow: 'hidden',
-          } as any}>{memory.note}</div>
+          }}>{memory.note}</div>
         ) : null}
       </div>
     </motion.button>
@@ -149,7 +149,7 @@ function MilestoneCard({ memory, onOpen }: { memory: Memory; onOpen: () => void 
         borderRadius: 20, border: 'none', padding: '16px 18px 18px',
         cursor: 'pointer',
         boxShadow: '0 1px 3px rgba(58,50,69,0.04), 0 2px 12px rgba(58,50,69,0.07)',
-        WebkitTapHighlightColor: 'transparent' as any,
+        WebkitTapHighlightColor: 'transparent',
       }}
     >
       <div style={{ display: 'flex', alignItems: 'center', gap: 7, marginBottom: 10 }}>
@@ -170,7 +170,7 @@ function MilestoneCard({ memory, onOpen }: { memory: Memory; onOpen: () => void 
               fontSize: 13, color: T.inkSoft, lineHeight: 1.5,
               display: '-webkit-box', WebkitLineClamp: 2,
               WebkitBoxOrient: 'vertical', overflow: 'hidden',
-            } as any}>{memory.note}</div>
+            }}>{memory.note}</div>
           ) : null}
         </div>
       </div>
@@ -231,7 +231,8 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
       m.dateShort === todayShort && !(m.group ?? '').includes(thisYear)
     ), [memories, todayShort, thisYear]);
 
-  const fiveDaysAgo = Date.now() - 5 * 24 * 60 * 60 * 1000;
+  const [mountTime] = useState(() => Date.now());
+  const fiveDaysAgo = mountTime - 5 * 24 * 60 * 60 * 1000;
   const lastMemoryTs = memories[0]?.createdAt ?? 0;
   const showNudge = memories.length > 0 && lastMemoryTs > 0 && lastMemoryTs < fiveDaysAgo;
 
@@ -305,7 +306,7 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
       <div style={{
         flex: 1, overflowY: 'auto', padding: '0 20px 110px',
         scrollbarWidth: 'none', position: 'relative', zIndex: 1,
-      } as any}>
+      }}>
 
         {/* Memory nudge */}
         <AnimatePresence>
@@ -356,7 +357,7 @@ export default function TimelineScreen({ child, memories, isLoading, onOpenMemor
                       width: '100%', display: 'flex', alignItems: 'center', gap: 10,
                       background: 'rgba(255,255,255,0.7)', borderRadius: 12,
                       border: 'none', padding: '10px 12px', cursor: 'pointer',
-                      WebkitTapHighlightColor: 'transparent' as any,
+                      WebkitTapHighlightColor: 'transparent',
                     }}
                   >
                     <div style={{ fontSize: 12, color: T.gold, minWidth: 52 }}>{m.group?.split(' ')[1] ?? ''}</div>
